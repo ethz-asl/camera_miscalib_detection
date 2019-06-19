@@ -10,7 +10,6 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('train_path')
 parser.add_argument('valid_path')
-parser.add_argument('-train_split', type=float, default=0.5)
 parser.add_argument('-batch_size', type=int, default=64)
 parser.add_argument('-epochs', type=int, default=100)
 parser.add_argument('-model_path', default='models/test_model/')
