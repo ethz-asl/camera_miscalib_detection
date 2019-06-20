@@ -2,9 +2,10 @@ import numpy as np
 import pandas as pd
 import time
 
+
 class Dataset(object):
     def __init__(self, path, remove_mean=False, remove_std=False,
-            scaler_batch_size=32, verbose=0):
+                 scaler_batch_size=32, verbose=0):
         # Dataset options. For larger datasets only process the paths and load
         # the data later in the get_outputs() function
         data = pd.read_csv(path).to_numpy()
@@ -18,7 +19,7 @@ class Dataset(object):
         if remove_mean or remove_std:
             from sklearn.preprocessing import StandardScaler
             self.scaler = StandardScaler(with_mean=remove_mean,
-                    with_std=remove_std)
+                                         with_std=remove_std)
 
             # Arbitrary sampling of data to determine mean.
             # Hacky, but much faster than iterating over the whole data.
@@ -26,7 +27,7 @@ class Dataset(object):
                 ids_batch = np.random.choice(self.n_samples, scaler_batch_size)
                 images_batch, _ = self.get_outputs(ids_batch)
                 images_batch = np.reshape(images_batch,
-                        (images_batch.shape[0], -1))
+                                          (images_batch.shape[0], -1))
                 self.scaler.partial_fit(images_batch)
             self.use_scaler = True
 
@@ -61,7 +62,7 @@ class Dataset(object):
         if self.use_scaler:
             shape = image_outputs.shape
             image_outputs = np.reshape(image_outputs,
-                    (image_outputs.shape[0], -1))
+                                       (image_outputs.shape[0], -1))
             image_outputs = self.scaler.transform(image_outputs)
             image_outputs = np.reshape(image_outputs, shape)
 
