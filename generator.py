@@ -1,20 +1,11 @@
 import numpy as np
 
 
-def to_onehot(y, n_classes):
-    y_onehot = np.zeros((len(y), n_classes))
-    for i, cls in enumerate(y):
-        y_onehot[i, cls] = 1
-
-    return y_onehot
-
-
 class Generator(object):
-    def __init__(self, dataset, ids, n_classes, batch_size=16, shuffle=False,
+    def __init__(self, dataset, ids, batch_size=16, shuffle=False,
                  verbose=0):
         self.dataset = dataset
         self.ids = np.array(ids)
-        self.n_classes = n_classes
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.verbose = verbose
@@ -41,8 +32,5 @@ class Generator(object):
 
         # For greyscale images add one more channel.
         images_batch = images_batch[:, :, :, None]
-
-        # Transform classes to onehot encoding.
-        labels_batch = to_onehot(labels_batch, self.n_classes)
 
         return images_batch, labels_batch

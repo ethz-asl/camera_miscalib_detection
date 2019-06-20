@@ -1,11 +1,11 @@
 import tensorflow as tf
 
 
-def init_model(input_shape, n_classes):
+def init_model(input_shape):
     # Input layer block.
     input_image = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape + (1,), name='input_image')
 
-    y_true = tf.placeholder(dtype=tf.float32, shape=(None, n_classes), name="y_true")
+    y_true = tf.placeholder(dtype=tf.float32, shape=(None, 1), name="y_true")
 
     training = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool), shape=(), name="training")
 
@@ -51,31 +51,27 @@ def init_model(input_shape, n_classes):
 
     dense2_drop = tf.keras.layers.Dropout(rate=0.5, name='dense2_drop')(dense2, training=training)
 
-    y_pred = tf.keras.layers.Dense(units=n_classes, activation=None,
+    y_pred = tf.keras.layers.Dense(units=1, activation=None,
                                    kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                   use_bias=True, name="classes")(dense2_drop)
+                                   use_bias=True, name="output")(dense2_drop)
+
 
     # Loss and optimizer.
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-        logits=y_pred, labels=y_true), name="loss")
+    loss = tf.reduce_mean(tf.square(y_pred - y_true), name='loss_mse')
 
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
     train_op = optimizer.minimize(loss, name='train_op')
 
     # Statistics.
-    correct_pred = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y_true, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32),
-                              name="accuracy")
+    error = tf.reduce_mean(tf.abs(y_pred - y_true), name='error_mae')
 
-    time_preprocess = tf.placeholder(dtype=tf.float32, shape=(),
-                                     name='time_preprocess')
+    time_preprocess = tf.placeholder(dtype=tf.float32, shape=(), name='time_preprocess')
     time_train = tf.placeholder(dtype=tf.float32, shape=(), name='time_train')
 
-    with tf.name_scope('summary'):
-        tf.summary.scalar('loss', loss, collections=['summary'])
-        tf.summary.scalar("accuracy", accuracy, collections=["summary"])
+    with tf.name_scope('Summary'):
+        tf.summary.scalar('loss_mse', loss, collections=['summary'])
+        tf.summary.scalar("error_mae", error, collections=['summary'])
 
-        with tf.name_scope('timings'):
-            tf.summary.scalar('preprocess', time_preprocess,
-                              collections=['summary_time'])
-            tf.summary.scalar('train', time_train, collections=['summary_time'])
+    with tf.name_scope('Timings'):
+        tf.summary.scalar('preprocess', time_preprocess, collections=['summary_time'])
+        tf.summary.scalar('train', time_train, collections=['summary_time'])

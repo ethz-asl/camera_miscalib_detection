@@ -3,14 +3,14 @@ import os
 import sys
 import time
 
-n_classes = 10
-
 # Parse command line arguments.
 import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('train_path')
 parser.add_argument('valid_path')
+parser.add_argument('-n_train_samples', type=int, default=-1)
+parser.add_argument('-n_val_samples', type=int, default=-1)
 parser.add_argument('-batch_size', type=int, default=64)
 parser.add_argument('-epochs', type=int, default=100)
 parser.add_argument('-model_path', default='models/test_model/')
@@ -24,8 +24,10 @@ args = parser.parse_args()
 # Load the dataset.
 from dataset import Dataset
 
-dataset_train = Dataset(args.train_path, remove_mean=True, remove_std=True, verbose=args.v)
-dataset_valid = Dataset(args.valid_path, verbose=args.v)
+dataset_train = Dataset(args.train_path, remove_mean=True, remove_std=True, internal_shuffle=True,
+                        num_of_samples=args.n_train_samples, verbose=args.v)
+dataset_valid = Dataset(args.valid_path, internal_shuffle=True,
+                        num_of_samples=args.n_val_samples, verbose=args.v)
 
 print('Train with %d images' % (dataset_train.n_samples))
 print('Valid with %d images' % (dataset_valid.n_samples))
@@ -36,8 +38,8 @@ ids_valid = np.arange(dataset_valid.n_samples)
 # Create batch generators for the train and validation sets.
 from generator import Generator
 
-gen_train = Generator(dataset_train, ids_train, n_classes, batch_size=args.batch_size, shuffle=False, verbose=args.v)
-gen_valid = Generator(dataset_valid, ids_valid, n_classes, batch_size=args.batch_size, shuffle=True, verbose=args.v)
+gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=False, verbose=args.v)
+gen_valid = Generator(dataset_valid, ids_valid, batch_size=args.batch_size, shuffle=True, verbose=args.v)
 
 # Create model directory if it doesn't exist.
 if not os.path.exists(args.model_path):
@@ -54,7 +56,7 @@ if args.v == 0:
 
 from model import init_model
 
-init_model(dataset_train.shape, n_classes)
+init_model(dataset_train.shape)
 
 graph = tf.get_default_graph()
 
@@ -66,8 +68,8 @@ training_tf = graph.get_tensor_by_name('training:0')
 time_preprocess_tf = graph.get_tensor_by_name('time_preprocess:0')
 time_train_tf = graph.get_tensor_by_name('time_train:0')
 
-loss_tf = graph.get_tensor_by_name('loss:0')
-accuracy_tf = graph.get_tensor_by_name('accuracy:0')
+loss_tf = graph.get_tensor_by_name('loss_mse:0')
+error_tf = graph.get_tensor_by_name('error_mae:0')
 train_op_tf = graph.get_operation_by_name('train_op')
 
 # Summaries.
@@ -98,11 +100,11 @@ with tf.Session(config=config) as sess:
     # Iterate network epochs.
     for epoch in range(0, args.epochs):
         train_loss = 0
-        train_accuracy = 0
+        train_error = 0
         train_step = 0
 
         valid_loss = 0
-        valid_accuracy = 0
+        valid_error = 0
         valid_step = 0
 
         # Sequence of train and validation batches.
@@ -117,8 +119,8 @@ with tf.Session(config=config) as sess:
                 train_start = time.time()
 
                 # Run optimizer and calculate loss.
-                batch_summary, batch_loss, batch_accuracy, _ = sess.run(
-                    [summary_tf, loss_tf, accuracy_tf, train_op_tf],
+                batch_summary, batch_loss, batch_error, _ = sess.run(
+                    [summary_tf, loss_tf, error_tf, train_op_tf],
                     feed_dict={input_image_tf: images_batch,
                                y_true_tf: labels_batch, training_tf: True})
 
@@ -133,14 +135,14 @@ with tf.Session(config=config) as sess:
                     train_writer.add_summary(batch_summary_time, global_step)
 
                 train_loss += batch_loss
-                train_accuracy += batch_accuracy
+                train_error += batch_error
                 train_step += 1
             else:
                 images_batch, labels_batch = gen_valid.next()
 
                 # Calculate validation loss.
-                batch_summary, batch_loss, batch_accuracy = sess.run(
-                    [summary_tf, loss_tf, accuracy_tf],
+                batch_summary, batch_loss, batch_error = sess.run(
+                    [summary_tf, loss_tf, error_tf],
                     feed_dict={input_image_tf: images_batch,
                                y_true_tf: labels_batch})
 
@@ -148,7 +150,7 @@ with tf.Session(config=config) as sess:
                     valid_writer.add_summary(batch_summary, global_step)
 
                 valid_loss += batch_loss
-                valid_accuracy += batch_accuracy
+                valid_error += batch_error
                 valid_step += 1
 
             # Print results.
@@ -157,14 +159,14 @@ with tf.Session(config=config) as sess:
             console_output = 'epoch %2d ' % epoch
 
             if train_step:
-                console_output += 'loss %.6f acc %.2f | ' % (
+                console_output += 'loss %.6f err %.2f | ' % (
                     train_loss / train_step,
-                    train_accuracy / train_step * 100)
+                    train_error / train_step * 100)
 
             if valid_step:
-                console_output += 'val_loss: %.6f val_acc %.2f' % (
+                console_output += 'val_loss: %.6f val_err %.2f' % (
                     valid_loss / valid_step,
-                    valid_accuracy / valid_step * 100)
+                    valid_error / valid_step * 100)
 
             console_output_size = len(console_output)
 
