@@ -24,7 +24,7 @@ args = parser.parse_args()
 # Load the dataset.
 from dataset import Dataset
 
-dataset_train = Dataset(args.train_path, remove_mean=True, remove_std=True, internal_shuffle=True,
+dataset_train = Dataset(args.train_path, remove_mean=False, remove_std=False, internal_shuffle=True,
                         num_of_samples=args.n_train_samples, verbose=args.v)
 dataset_valid = Dataset(args.valid_path, internal_shuffle=True,
                         num_of_samples=args.n_val_samples, verbose=args.v)

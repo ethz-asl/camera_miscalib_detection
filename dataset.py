@@ -80,6 +80,8 @@ class Dataset(object):
         image_outputs = np.array(image_outputs).astype(np.float)
         label_outputs = np.array(label_outputs).astype(np.float)
 
+        print("Debug: ", image_outputs.shape)
+
         # Pass batch thorugh scaler to remove mean and/or std.
         if self.use_scaler:
             shape = image_outputs.shape
