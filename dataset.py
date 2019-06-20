@@ -62,9 +62,9 @@ class Dataset(object):
 
             # Convert image from BGRA/BGR to RGB
             if image.shape[-1] == 4:
-                cv2.cvtColor(image, image, cv2.COLOR_BGRA2RGB)
+                cv2.cvtColor(image, cv2.COLOR_BGRA2RGB, image)
             else:
-                cv2.cvtColor(image, image, cv2.COLOR_BGR2RGB)
+                cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
             # Convert image to float matrix
             image = image.astype(np.float)
 
