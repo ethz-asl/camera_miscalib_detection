@@ -69,7 +69,8 @@ class Dataset(object):
             image = image.astype(np.float)
 
             # Image augmentation.
-            # ...
+            # Cropping to remove car from AppoloScape dataset
+            image = image[0:770, :, :]
 
             # Collect batch data.
             image_outputs.append(image)
