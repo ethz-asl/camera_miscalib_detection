@@ -77,7 +77,7 @@ class Dataset(object):
             label_outputs.append(label)
 
         # Convert to numpy array.
-        image_outputs = np.array(image_outputs).astype(np.float)
+        image_outputs = np.squeeze(np.array(image_outputs))
         label_outputs = np.array(label_outputs).astype(np.float)
 
         print("Debug: ", image_outputs.shape)
