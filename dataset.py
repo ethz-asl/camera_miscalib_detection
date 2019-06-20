@@ -77,7 +77,7 @@ class Dataset(object):
             label_outputs.append(label)
 
         # Convert to numpy array.
-        image_outputs = np.array(image_outputs)
+        image_outputs = np.array(image_outputs).astype(np.float)
         label_outputs = np.array(label_outputs).astype(np.float)
 
         # Pass batch thorugh scaler to remove mean and/or std.
