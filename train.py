@@ -56,6 +56,7 @@ if args.v == 0:
 
 from model import init_model
 
+print("Input shape: ", dataset_train.shape)
 init_model(dataset_train.shape)
 
 graph = tf.get_default_graph()

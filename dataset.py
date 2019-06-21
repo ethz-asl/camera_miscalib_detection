@@ -66,18 +66,18 @@ class Dataset(object):
             else:
                 cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
             # Convert image to float matrix
-            image = image.astype(np.float)
+            image = image.astype(np.float).squeeze()
 
             # Image augmentation.
             # Cropping to remove car from AppoloScape dataset
             image = image[0:770, :, :]
-
+            print(image.shape)
             # Collect batch data.
             image_outputs.append(image)
             label_outputs.append(label)
 
         # Convert to numpy array.
-        image_outputs = np.squeeze(np.array(image_outputs))
+        image_outputs = np.array(image_outputs)
         label_outputs = np.array(label_outputs).astype(np.float)
 
         # Pass batch thorugh scaler to remove mean and/or std.
