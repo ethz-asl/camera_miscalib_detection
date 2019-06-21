@@ -1,15 +1,28 @@
+"""
+This script can be used to get a summary of the model created (during prototyping).
+@note It works only with Keras API.
+"""
+
 import tensorflow as tf
 
 
-def init_model(input_shape):
-    # Input layer block.
-    input_image = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape, name='input_image')
+def create_model(input_shape, training=False):
+    """
+    Creates a simple CNN model
+    :param input_shape:
+    :param output_size:
+    :return:
+    """
+    # check if dimensions are a correct type
+    assert isinstance(input_shape, tuple)
 
-    y_true = tf.placeholder(dtype=tf.float32, shape=(None, 1), name="y_true")
+    # define input placeholder
+    input_image = tf.keras.Input(shape=input_shape, name='input')
 
-    training = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool), shape=(), name="training")
+    ########################
+    ### Paste model here ###
+    ########################
 
-    # Convolutional layer block.
     conv1 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
                                    padding="same", activation=tf.nn.relu, use_bias=True,
                                    kernel_initializer=tf.contrib.layers.xavier_initializer(),
@@ -69,22 +82,24 @@ def init_model(input_shape):
                                    kernel_initializer=tf.contrib.layers.xavier_initializer(),
                                    use_bias=True, name="output")(dense2_drop)
 
-    # Loss and optimizer.
-    loss = tf.reduce_mean(tf.square(y_pred - y_true), name='loss_mse')
+    ####################
+    ### Create model ###
+    ####################
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
-    train_op = optimizer.minimize(loss, name='train_op')
+    # instantiate the model given inputs and outputs.
+    model = tf.keras.Model(inputs=input_image, outputs=y_pred)
 
-    # Statistics.
-    error = tf.reduce_mean(tf.abs(y_pred - y_true), name='error_mae')
+    return model
 
-    time_preprocess = tf.placeholder(dtype=tf.float32, shape=(), name='time_preprocess')
-    time_train = tf.placeholder(dtype=tf.float32, shape=(), name='time_train')
 
-    with tf.name_scope('Summary'):
-        tf.summary.scalar('loss_mse', loss, collections=['summary'])
-        tf.summary.scalar("error_mae", error, collections=['summary'])
+if __name__ == '__main__':
+    """
+    Example Usage
+    """
+    # retrieve the cnn architecture
+    model = create_model((770, 1128, 3), True)
 
-    with tf.name_scope('Timings'):
-        tf.summary.scalar('preprocess', time_preprocess, collections=['summary_time'])
-        tf.summary.scalar('train', time_train, collections=['summary_time'])
+    # print model summary
+    model.summary()
+
+# EOF
