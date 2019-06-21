@@ -3,7 +3,7 @@ import tensorflow as tf
 
 def init_model(input_shape):
     # Input layer block.
-    input_image = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape + (1,), name='input_image')
+    input_image = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape, name='input_image')
 
     y_true = tf.placeholder(dtype=tf.float32, shape=(None, 1), name="y_true")
 

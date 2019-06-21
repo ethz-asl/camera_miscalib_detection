@@ -71,7 +71,7 @@ class Dataset(object):
             # Image augmentation.
             # Cropping to remove car from AppoloScape dataset
             image = image[0:770, :, :]
-            print(image.shape)
+
             # Collect batch data.
             image_outputs.append(image)
             label_outputs.append(label)
