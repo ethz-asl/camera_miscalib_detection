@@ -65,8 +65,6 @@ class Dataset(object):
                 cv2.cvtColor(image, cv2.COLOR_BGRA2RGB, image)
             else:
                 cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
-            # Convert image to float matrix
-            image = image.astype(np.float).squeeze()
 
             # Image augmentation.
             # Cropping to remove car from AppoloScape dataset
@@ -74,6 +72,9 @@ class Dataset(object):
 
             # resize the image
             image = cv2.resize(image, None, fx=0.25, fy=0.25)
+
+            # Convert image to float matrix
+            image = image.astype(np.float).squeeze()
 
             # Collect batch data.
             image_outputs.append(image)
