@@ -71,6 +71,9 @@ class Dataset(object):
             # resize the image
             image = cv2.resize(image, None, fx=0.25, fy=0.25)
 
+            # rescale the label
+            label = label / 100.0
+
             # Collect batch data.
             image_outputs.append(image)
             label_outputs.append(label)

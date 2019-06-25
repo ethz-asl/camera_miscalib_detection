@@ -5,7 +5,7 @@ def init_model(input_shape):
     # Input layer block.
     input_image = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape, name='input_image')
 
-    y_true = tf.placeholder(dtype=tf.float32, shape=(None, 1), name="y_true")
+    y_true = tf.placeholder(dtype=tf.float32, shape=(None), name="y_true")
 
     training = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool), shape=(), name="training")
 
