@@ -72,6 +72,9 @@ class Dataset(object):
             # Cropping to remove car from AppoloScape dataset
             image = image[0:770, :, :]
 
+            # resize the image
+            image = cv2.resize(image, None, fx=0.25, fy=0.25)
+
             # Collect batch data.
             image_outputs.append(image)
             label_outputs.append(label)

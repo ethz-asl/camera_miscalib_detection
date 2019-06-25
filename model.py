@@ -10,47 +10,64 @@ def init_model(input_shape):
     training = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool), shape=(), name="training")
 
     # Convolutional layer block.
-    conv1 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                   padding="same", activation=tf.nn.relu, use_bias=True,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                   name="conv1")(input_image)
+    with tf.name_scope("conv_block_1"):
+        conv1 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv1")(input_image)
 
-    conv2 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                   padding="same", activation=tf.nn.relu, use_bias=True,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                   name="conv2")(conv1)
+        conv2 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv2")(conv1)
 
-    pool1 = tf.keras.layers.MaxPooling2D(pool_size=(4, 4), strides=(4, 4),
-                                         name="pool1")(conv2)
+        pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
+                                             name="pool1")(conv2)
 
-    conv3 = tf.keras.layers.Conv2D(filters=16, kernel_size=(3, 3),
-                                   padding="same", activation=tf.nn.relu, use_bias=True,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                   name="conv3")(pool1)
+    with tf.name_scope("conv_block_2"):
+        conv3 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv3")(pool1)
 
-    conv4 = tf.keras.layers.Conv2D(filters=16, kernel_size=(3, 3),
-                                   padding="same", activation=tf.nn.relu, use_bias=True,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                   name="conv4")(conv3)
+        conv4 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv4")(conv3)
 
-    pool2 = tf.keras.layers.MaxPooling2D(pool_size=(4, 4), strides=(4, 4),
-                                         name="pool2")(conv4)
+        pool2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
+                                             name="pool2")(conv4)
 
-    conv5 = tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3),
-                                   padding="same", activation=tf.nn.relu, use_bias=True,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                   name="conv5")(pool2)
+    with tf.name_scope("conv_block_3"):
+        conv5 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv5")(pool2)
 
-    conv6 = tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3),
-                                   padding="same", activation=tf.nn.relu, use_bias=True,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                   name="conv6")(conv5)
+        conv6 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv6")(conv5)
 
-    pool3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
-                                         name="pool3")(conv6)
+        pool3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
+                                             name="pool3")(conv6)
+
+    with tf.name_scope("conv_block_4"):
+        conv7 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv7")(pool3)
+
+        conv8 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
+                                       padding="same", activation=tf.nn.relu, use_bias=True,
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                       name="conv8")(conv7)
+
+        pool4 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
+                                             name="pool4")(conv8)
 
     # Flatten
-    flatten = tf.keras.layers.Flatten()(pool3)
+    flatten = tf.keras.layers.Flatten()(pool4)
 
     # Dense layers.
     dense1 = tf.keras.layers.Dense(units=256, activation=tf.nn.relu,
