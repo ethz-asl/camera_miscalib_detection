@@ -62,9 +62,7 @@ class Dataset(object):
 
             # Convert image from BGRA/BGR to RGB
             if image.shape[-1] == 4:
-                cv2.cvtColor(image, cv2.COLOR_BGRA2RGB, image)
-            else:
-                cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)
+                raise Exception("Expected input to have channels 3. Number of channels present: " % 4)
 
             # Image augmentation.
             # Cropping to remove car from AppoloScape dataset
@@ -73,15 +71,12 @@ class Dataset(object):
             # resize the image
             image = cv2.resize(image, None, fx=0.25, fy=0.25)
 
-            # Convert image to float matrix
-            image = image.astype(np.float).squeeze()
-
             # Collect batch data.
             image_outputs.append(image)
             label_outputs.append(label)
 
         # Convert to numpy array.
-        image_outputs = np.array(image_outputs)
+        image_outputs = np.array(image_outputs).astype(np.float)
         label_outputs = np.array(label_outputs).astype(np.float)
 
         # Pass batch thorugh scaler to remove mean and/or std.

@@ -30,7 +30,4 @@ class Generator(object):
 
         images_batch, labels_batch = self.dataset.get_outputs(batch_ids)
 
-        # For greyscale images add one more channel.
-        images_batch = images_batch[:, :, :, None]
-
         return images_batch, labels_batch
