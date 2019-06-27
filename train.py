@@ -11,7 +11,7 @@ parser.add_argument('index')
 parser.add_argument('train_selector')
 parser.add_argument('valid_selector')
 parser.add_argument('-n_train_samples', type=int, default=-1)
-parser.add_argument('-n_val_samples', type=int, default=-1)
+parser.add_argument('-n_valid_samples', type=int, default=-1)
 parser.add_argument('-batch_size', type=int, default=64)
 parser.add_argument('-epochs', type=int, default=100)
 parser.add_argument('-model_path', default='models/test_model/')
@@ -26,9 +26,9 @@ args = parser.parse_args()
 # Load the dataset.
 from dataset import Dataset
 
-dataset_train = Dataset(args.index_csv, selector=args.train_selector, remove_mean=False, remove_std=False,
+dataset_train = Dataset(args.index, selector=args.train_selector, remove_mean=False, remove_std=False,
                         internal_shuffle=True, num_of_samples=args.n_train_samples, verbose=args.v, n_jobs=args.njobs)
-dataset_valid = Dataset(args.index_csv, selector=args.valid_selector, remove_mean=False, remove_std=False,
+dataset_valid = Dataset(args.index, selector=args.valid_selector, remove_mean=False, remove_std=False,
                         internal_shuffle=True, num_of_samples=args.n_valid_samples, verbose=args.v, n_jobs=args.njobs)
 
 print('Train with %d images' % (dataset_train.n_samples))
