@@ -60,9 +60,8 @@ class Dataset(object):
             image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR)
             label = self.labels[id]
 
-            # Convert image from BGRA/BGR to RGB
-            if image.shape[-1] == 4:
-                raise Exception("Expected input to have channels 3. Number of channels present: " % 4)
+            if image.shape[-1] != 3:
+                raise Exception("Expected input to have channels 3. Number of channels present: %d" % image.shape[-1])
 
             # Image augmentation.
             # Cropping to remove car from AppoloScape dataset

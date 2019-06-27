@@ -26,7 +26,7 @@ from dataset import Dataset
 
 dataset_train = Dataset(args.train_path, remove_mean=True, remove_std=True, internal_shuffle=True,
                         num_of_samples=args.n_train_samples, verbose=args.v)
-dataset_valid = Dataset(args.valid_path, internal_shuffle=True,
+dataset_valid = Dataset(args.valid_path, remove_mean=True, remove_std=True, internal_shuffle=True,
                         num_of_samples=args.n_val_samples, verbose=args.v)
 
 print('Train with %d images' % (dataset_train.n_samples))
@@ -38,8 +38,8 @@ ids_valid = np.arange(dataset_valid.n_samples)
 # Create batch generators for the train and validation sets.
 from generator import Generator
 
-gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=False, verbose=args.v)
-gen_valid = Generator(dataset_valid, ids_valid, batch_size=args.batch_size, shuffle=True, verbose=args.v)
+gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=True, verbose=args.v)
+gen_valid = Generator(dataset_valid, ids_valid, batch_size=args.batch_size, shuffle=False, verbose=args.v)
 
 # Create model directory if it doesn't exist.
 if not os.path.exists(args.model_path):
@@ -160,14 +160,14 @@ with tf.Session(config=config) as sess:
             console_output = 'epoch %2d ' % epoch
 
             if train_step:
-                console_output += 'loss %.6f err %.2f | ' % (
+                console_output += 'Train: loss_mse %.4f err_mae %.4f | ' % (
                     train_loss / train_step,
-                    train_error / train_step * 100)
+                    train_error / train_step)
 
             if valid_step:
-                console_output += 'val_loss: %.6f val_err %.2f' % (
+                console_output += 'Val: loss_mse: %.4f err_mae %.4f' % (
                     valid_loss / valid_step,
-                    valid_error / valid_step * 100)
+                    valid_error / valid_step)
 
             console_output_size = len(console_output)
 
