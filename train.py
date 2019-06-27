@@ -7,8 +7,9 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('train_path')
-parser.add_argument('valid_path')
+parser.add_argument('index')
+parser.add_argument('train_selector')
+parser.add_argument('valid_selector')
 parser.add_argument('-n_train_samples', type=int, default=-1)
 parser.add_argument('-n_val_samples', type=int, default=-1)
 parser.add_argument('-batch_size', type=int, default=64)
@@ -18,16 +19,17 @@ parser.add_argument('-log_path', default='tensorboard/')
 parser.add_argument('-log_name', default=None)
 parser.add_argument('-checkpoints', default=5)
 parser.add_argument('-v', type=int, default=0)
+parser.add_argument('-njobs', type=int, default=os.cpu_count())
 
 args = parser.parse_args()
 
 # Load the dataset.
 from dataset import Dataset
 
-dataset_train = Dataset(args.train_path, remove_mean=True, remove_std=True, internal_shuffle=True,
-                        num_of_samples=args.n_train_samples, verbose=args.v)
-dataset_valid = Dataset(args.valid_path, internal_shuffle=True,
-                        num_of_samples=args.n_val_samples, verbose=args.v)
+dataset_train = Dataset(args.index_csv, selector=args.train_selector, remove_mean=False, remove_std=False,
+                        internal_shuffle=True, num_of_samples=args.n_train_samples, verbose=args.v, n_jobs=args.njobs)
+dataset_valid = Dataset(args.index_csv, selector=args.valid_selector, remove_mean=False, remove_std=False,
+                        internal_shuffle=True, num_of_samples=args.n_valid_samples, verbose=args.v, n_jobs=args.njobs)
 
 print('Train with %d images' % (dataset_train.n_samples))
 print('Valid with %d images' % (dataset_valid.n_samples))
