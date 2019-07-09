@@ -35,7 +35,11 @@ class Dataset(object):
         self.shape = output[0].shape
 
     def get_normalization_params(self):
-        return self.scaler.get_params()
+        params = dict()
+        params['mean'] = self.scaler.mean_
+        params['scale'] = self.scaler.scale_
+        params['var'] = self.scaler.var_
+        return params
 
     def set_normalization_params(self, params=None, remove_mean=True, remove_std=True, scaler_batch_size=32):
         if remove_mean or remove_std:
@@ -50,8 +54,14 @@ class Dataset(object):
                     self.scaler.partial_fit(images_batch)
                 self.use_scaler = True
             else:
-                self.scaler.set_params(**params)
+                self.scaler.mean_ = params['mean']
+                self.scaler.scale_ = params['scale']
+                self.scaler.var_ = params['var']
                 self.use_scaler = True
+
+        # Get final output shape (as a sanity check).
+        output, _ = self.get_outputs([0])
+        assert self.shape == output[0].shape
 
     def get_outputs(self, ids):
         image_outputs = []
