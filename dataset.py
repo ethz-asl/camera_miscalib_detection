@@ -3,11 +3,11 @@ import pandas as pd
 import time
 import os
 import cv2
+from sklearn.preprocessing import StandardScaler
 
 
 class Dataset(object):
-    def __init__(self, path, remove_mean=False, remove_std=False,
-                 scaler_batch_size=32, num_of_samples=-1, internal_shuffle=False, verbose=0):
+    def __init__(self, path, num_of_samples=-1, internal_shuffle=False, verbose=0):
         """
         NOTE: For larger datasets only process the paths and load the data later in the get_outputs() function.
         """
@@ -30,23 +30,28 @@ class Dataset(object):
         self.use_scaler = False
         self.verbose = verbose
 
-        # Mean and std scaling.
-        if remove_mean or remove_std:
-            from sklearn.preprocessing import StandardScaler
-            self.scaler = StandardScaler(with_mean=remove_mean, with_std=remove_std)
-
-            # Arbitrary sampling of data to determine mean.
-            # Hacky, but much faster than iterating over the whole data.
-            for epoch in range(128):
-                ids_batch = np.random.choice(self.n_samples, scaler_batch_size)
-                images_batch, _ = self.get_outputs(ids_batch)
-                images_batch = np.reshape(images_batch, (images_batch.shape[0], -1))
-                self.scaler.partial_fit(images_batch)
-            self.use_scaler = True
-
         # Get final output shape.
         output, _ = self.get_outputs([0])
         self.shape = output[0].shape
+
+    def get_normalization_params(self):
+        return self.scaler.get_params()
+
+    def set_normalization_params(self, params=None, remove_mean=True, remove_std=True, scaler_batch_size=32):
+        if remove_mean or remove_std:
+            self.scaler = StandardScaler(with_mean=remove_mean, with_std=remove_std)
+            if params is None:
+                # Arbitrary sampling of data to determine mean.
+                # Hacky, but much faster than iterating over the whole data.
+                for epoch in range(128):
+                    ids_batch = np.random.choice(self.n_samples, scaler_batch_size)
+                    images_batch, _ = self.get_outputs(ids_batch)
+                    images_batch = np.reshape(images_batch, (images_batch.shape[0], -1))
+                    self.scaler.partial_fit(images_batch)
+                self.use_scaler = True
+            else:
+                self.scaler.set_params(**params)
+                self.use_scaler = True
 
     def get_outputs(self, ids):
         image_outputs = []
