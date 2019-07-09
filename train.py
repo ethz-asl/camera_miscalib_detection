@@ -31,6 +31,8 @@ dataset_valid = Dataset(args.valid_path, internal_shuffle=True, num_of_samples=a
 dataset_train.set_normalization_params(remove_mean=True, remove_std=True)
 dataset_valid.set_normalization_params(dataset_train.get_normalization_params(), remove_mean=True, remove_std=True)
 
+assert dataset_train.get_normalization_params() == dataset_valid.get_normalization_params()
+
 print('Train with %d images' % (dataset_train.n_samples))
 print('Valid with %d images' % (dataset_valid.n_samples))
 
