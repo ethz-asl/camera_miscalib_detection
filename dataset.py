@@ -4,6 +4,7 @@ import time
 import glob
 import sys
 import threading
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -13,17 +14,17 @@ import carnivalmirror as cm
 
 
 class Dataset(object):
-    def __init__(self, index_csv, selector='', remove_mean=False, remove_std=False,
-                 scaler_batch_size=32, num_of_samples=-1, internal_shuffle=False,
-                 scaler_epochs=128, verbose=0, n_jobs=1):
+    def __init__(self, index_csv, selector='',  num_of_samples=-1,
+                 internal_shuffle=False, n_jobs=1, verbose=0):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
                     tags image03 and 2011_09_26, and with tags image03 and 2011_09_28 (no spaces!)
         """
 
-        self.verbose = verbose
+        self.use_scaler = False
         self.n_jobs = n_jobs
+        self.verbose = verbose
         self.resolution_reduction_factor = 4
         self.label_scale_factor = 100
 
@@ -75,82 +76,95 @@ class Dataset(object):
         # read data from the data-frame
         self.image_paths = data['image_name'].tolist()
         self.cal_group_assignment = data['cal_group'].tolist()
-        self.use_scaler = False
-
-        # Mean and std scaling.
-        if remove_mean or remove_std:
-            from sklearn.preprocessing import StandardScaler
-            self.scaler = StandardScaler(with_mean=remove_mean, with_std=remove_std)
-
-            if self.verbose > 0:
-                print_width = 9
-                sys.stdout.write("Training scaler. " + ' ' * print_width)
-
-            # Arbitrary sampling of data to determine mean.
-            # Hacky, but much faster than iterating over the whole data.
-            for epoch in range(scaler_epochs):
-                ids_batch = np.random.choice(self.n_samples, scaler_batch_size)
-                images_batch, _ = self.get_outputs(ids_batch, raw=True)
-                images_batch = np.reshape(images_batch, (images_batch.shape[0], -1))
-                self.scaler.partial_fit(images_batch)
-
-                if self.verbose > 0:
-                    sys.stdout.write('\b' * print_width)
-                    sys.stdout.write('%4d/%4d' % (epoch, scaler_epochs))
-                    sys.stdout.flush()
-
-            if self.verbose > 0:
-                print()
-
-            self.use_scaler = True
 
         # Get final output shape.
         output, _ = self.get_outputs([0])
         self.shape = output[0].shape
 
-    def get_outputs(self, ids, raw=False):
-        """raw will provide images without applying a distortion in order to speed up the mean scaling"""
+    def train_scaler(self, remove_mean=False, remove_std=False,
+                     scaler_batch_size=32, scaler_epochs=256):
+        assert(remove_mean or remove_std)
+
+        # Mean and std scaling.
+        from sklearn.preprocessing import StandardScaler
+        self.scaler = StandardScaler(with_mean=remove_mean, with_std=remove_std)
+
+        if self.verbose > 0:
+            print_width = 10
+            sys.stdout.write("Training scaler." + ' ' * print_width)
+
+        # Arbitrary sampling of data to determine mean.
+        # Hacky, but much faster than iterating over the whole data.
+        for epoch in range(scaler_epochs):
+            ids_batch = np.random.choice(self.n_samples, scaler_batch_size)
+            images_batch, _ = self.get_outputs(ids_batch)
+            images_batch = np.reshape(images_batch, (images_batch.shape[0], -1))
+            self.scaler.partial_fit(images_batch)
+
+            if self.verbose > 0:
+                sys.stdout.write('\b' * print_width)
+                sys.stdout.write(' %4d/%4d' % (epoch+1, scaler_epochs))
+                sys.stdout.flush()
+
+        if self.verbose > 0:
+            print()
+
+        self.use_scaler = True
+
+    def set_scaler(self, scaler):
+        self.use_scaler = True
+        self.scaler = scaler
+
+    def get_scaler(self):
+        return deepcopy(self.scaler)
+
+    def get_outputs(self, ids):
         image_outputs = []
         label_outputs = []
 
         # First load images
         images = []
+        cal_infos = []
         for id in ids:
             # Load the image.
             image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR)
-
-            # Check channel number
-            if image.shape[-1] == 4:
-                raise Exception('Expected 3 channels in image (found %d): ' % 4)
-
+            assert(image.shape[-1] == 3)
             images.append(image)
 
-        # Form image batch from raw data.
-        self._lock_appd.acquire()
-        for id, image in zip(ids, images):
+            # Load calibration info
             cal_group = self.cal_group_assignment[id]
+            cal_width = self.cal_groups[cal_group]['width'].values[0]
+            cal_height = self.cal_groups[cal_group]['height'].values[0]
+            target_width = cal_width / self.resolution_reduction_factor
+            target_height = cal_height / self.resolution_reduction_factor
+            cal_infos.append((cal_group, cal_width, cal_height, target_width, target_height))
 
-            # Calculate the rescaled output resolution
-            output_width = int(self.cal_groups[cal_group]['width'].values[0] / self.resolution_reduction_factor)
-            output_height = int(self.cal_groups[cal_group]['height'].values[0] / self.resolution_reduction_factor)
+        miscals = []
+        self._lock_appd.acquire()
+        for cal_info in cal_infos:
+            cal_group, cal_width, cal_height, target_width, target_height = cal_info
 
             # Sample a miscalibration, apply it, and calculate the respective APPD
             miscal = self.samplers[cal_group].next()
-
-            appd, diff_map = miscal.appd(reference=self.samplers[cal_group].reference,
-                                         width=self.cal_groups[cal_group]['width'].values[0],
-                                         height=self.cal_groups[cal_group]['height'].values[0],
-                                         return_diff_map=True, normalized=True,
-                                         map_width=output_width, map_height=output_height)
-
-            image = miscal.rectify(image, result_width=output_width, result_height=output_height, mode='preserving')
+            appd = miscal.appd(reference=self.samplers[cal_group].reference,
+                               width=cal_width, height=cal_height, normalized=True,
+                               map_width=target_width, map_height=target_height)
+            miscals.append(miscal)
 
             label = appd * self.label_scale_factor
+            label_outputs.append(label)
+        self._lock_appd.release()
+
+        # Form image batch from raw data.
+        for cal_info, miscal in zip(cal_infos, miscals):
+            _, _, _, target_width, target_height = cal_info
+            image = miscal.rectify(image,
+                                   result_width=target_width,
+                                   result_height=target_height,
+                                   mode='preserving')
 
             # Collect batch data.
             image_outputs.append(image)
-            label_outputs.append(label)
-        self._lock_appd.release()
 
         # Convert to numpy array.
         image_outputs = np.array(image_outputs).astype(np.float)
@@ -217,7 +231,7 @@ class Dataset(object):
                                             appd_range_bins=20, init_jobs=self.n_jobs,
                                             width=output_width, height=output_height,
                                             min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
-            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=self.n_jobs*64, n_jobs=n_jobs_per_group)
+            #sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=self.n_jobs*64, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
 
     def stop(self):
