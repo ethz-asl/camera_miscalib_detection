@@ -1,6 +1,8 @@
+from __future__ import print_function
 import os
 import time
 import glob
+import threading
 
 import numpy as np
 import pandas as pd
@@ -22,6 +24,8 @@ class Dataset(object):
         self.n_jobs = n_jobs
         self.resolution_reduction_factor = 4
         self.label_scale_factor = 100
+
+        self._lock_appd = threading.Lock()
 
         folders = pd.read_csv(index_csv)
         # assumption: the index csv file is inside the folder where the folders with images are
@@ -45,7 +49,7 @@ class Dataset(object):
             image_names = glob.glob(os.path.join(dir_path, folder['path_to_dir'])+'/*')
             n = len(image_names)
             new_df = pd.DataFrame({'image_name': image_names, 'cal_group': [folder['cal_group']]*n})
-            data = pd.concat([data, new_df])
+            data = pd.concat([data, new_df], sort=False)
 
         if self.verbose > 0:
             print("%d images found in %d folders grouped in %d groups from index file %s, when applying selector '%s'." %
@@ -94,46 +98,44 @@ class Dataset(object):
         image_outputs = []
         label_outputs = []
 
-        preprocess_start = time.time()
-
-        # Form image batch from raw data.
+        # First load images
+        images = []
         for id in ids:
             # Load the image.
             image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR)
+
+            # Check channel number
+            if image.shape[-1] == 4:
+                raise Exception('Expected 3 channels in image (found %d): ' % 4)
+
+            images.append(image)
+
+        # Form image batch from raw data.
+        self._lock_appd.acquire()
+        for id, image in zip(ids, images):
             cal_group = self.cal_group_assignment[id]
 
             # Calculate the rescaled output resolution
             output_width = int(self.cal_groups[cal_group]['width'].values[0] / self.resolution_reduction_factor)
             output_height = int(self.cal_groups[cal_group]['height'].values[0] / self.resolution_reduction_factor)
 
-            # Convert image from BGRA/BGR to RGB
-            if image.shape[-1] == 4:
-                raise Exception('Expected input to have channels 3. Number of channels present: ' % 4)
-
             # Sample a miscalibration, apply it, and calculate the respective APPD
             miscal = self.samplers[cal_group].next()
+
             appd, diff_map = miscal.appd(reference=self.samplers[cal_group].reference,
                                          width=self.cal_groups[cal_group]['width'].values[0],
                                          height=self.cal_groups[cal_group]['height'].values[0],
                                          return_diff_map=True, normalized=True,
-                                         map_width=output_width,
-                                         map_height=output_height)
+                                         map_width=output_width, map_height=output_height)
 
             image = miscal.rectify(image, result_width=output_width, result_height=output_height, mode='preserving')
 
             label = appd * self.label_scale_factor
 
-            # Image augmentation.
-            # Cropping to remove car from AppoloScape dataset
-            # image = image[0:770, :, :]
-
-            # resize the image [now done in the rectification]
-            # image = cv2.resize(image, None, fx=0.25, fy=0.25)
-
-
             # Collect batch data.
             image_outputs.append(image)
             label_outputs.append(label)
+        self._lock_appd.release()
 
         # Convert to numpy array.
         image_outputs = np.array(image_outputs).astype(np.float)
@@ -145,8 +147,6 @@ class Dataset(object):
             image_outputs = np.reshape(image_outputs, (image_outputs.shape[0], -1))
             image_outputs = self.scaler.transform(image_outputs)
             image_outputs = np.reshape(image_outputs, shape)
-
-        self.time_preprocess = time.time() - preprocess_start
 
         return image_outputs, label_outputs
 
@@ -177,7 +177,7 @@ class Dataset(object):
             # Calculate the rescaled output resolution
             output_width = int(self.cal_groups[cal_group]['width'] / self.resolution_reduction_factor)
             output_height = int(self.cal_groups[cal_group]['height'] / self.resolution_reduction_factor)
-            
+
             # Create the reference (correct calibration)
             reference = cm.Calibration(K=[cg['fx'].values[0], cg['fy'].values[0], cg['cx'].values[0], cg['cy'].values[0]],
                                       D=[cg['k1'].values[0], cg['k2'].values[0], cg['p1'].values[0], cg['p2'].values[0], cg['k3'].values[0]],
@@ -201,8 +201,7 @@ class Dataset(object):
                                             reference=reference, temperature=5, appd_range_dicovery_samples=2000,
                                             appd_range_bins=20, init_jobs=self.n_jobs,
                                             width=output_width, height=output_height,
-                                            min_cropped_size=(int(output_width / 1.5),
-                                                              int(output_height / 1.5)))
+                                            min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
             sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=self.n_jobs*64, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
 
@@ -215,4 +214,3 @@ class Dataset(object):
                 self.samplers[cal_group].stop()
             except:
                 pass
-

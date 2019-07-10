@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import os
 import sys
@@ -12,23 +13,23 @@ parser.add_argument('train_selector')
 parser.add_argument('valid_selector')
 parser.add_argument('-n_train_samples', type=int, default=-1)
 parser.add_argument('-n_valid_samples', type=int, default=-1)
-parser.add_argument('-batch_size', type=int, default=64)
+parser.add_argument('-batch_size', type=int, default=32)
 parser.add_argument('-epochs', type=int, default=100)
 parser.add_argument('-model_path', default='models/test_model/')
 parser.add_argument('-log_path', default='tensorboard/')
 parser.add_argument('-log_name', default=None)
 parser.add_argument('-checkpoints', default=5)
 parser.add_argument('-v', type=int, default=0)
-parser.add_argument('-njobs', type=int, default=os.cpu_count())
+parser.add_argument('-njobs', type=int, default=8)
 
 args = parser.parse_args()
 
 # Load the dataset.
 from dataset import Dataset
 
-dataset_train = Dataset(args.index, selector=args.train_selector, remove_mean=False, remove_std=False,
+dataset_train = Dataset(args.index, selector=args.train_selector, remove_mean=True, remove_std=False,
                         internal_shuffle=True, num_of_samples=args.n_train_samples, verbose=args.v, n_jobs=args.njobs)
-dataset_valid = Dataset(args.index, selector=args.valid_selector, remove_mean=False, remove_std=False,
+dataset_valid = Dataset(args.index, selector=args.valid_selector, remove_mean=True, remove_std=False,
                         internal_shuffle=True, num_of_samples=args.n_valid_samples, verbose=args.v, n_jobs=args.njobs)
 
 print('Train with %d images' % (dataset_train.n_samples))
@@ -40,7 +41,7 @@ ids_valid = np.arange(dataset_valid.n_samples)
 # Create batch generators for the train and validation sets.
 from generator import Generator
 
-gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=False, verbose=args.v)
+gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=True, verbose=args.v)
 gen_valid = Generator(dataset_valid, ids_valid, batch_size=args.batch_size, shuffle=True, verbose=args.v)
 
 # Create model directory if it doesn't exist.
@@ -68,7 +69,7 @@ input_image_tf = graph.get_tensor_by_name('input_image:0')
 y_true_tf = graph.get_tensor_by_name('y_true:0')
 
 training_tf = graph.get_tensor_by_name('training:0')
-time_preprocess_tf = graph.get_tensor_by_name('time_preprocess:0')
+time_data_tf = graph.get_tensor_by_name('time_data:0')
 time_train_tf = graph.get_tensor_by_name('time_train:0')
 
 loss_tf = graph.get_tensor_by_name('loss_mse:0')
@@ -117,21 +118,22 @@ with tf.Session(config=config) as sess:
         console_output_size = 0
         for train in batches:
             if train:
+                data_start = time.time()
                 images_batch, labels_batch = gen_train.next()
-
-                train_start = time.time()
+                time_data = time.time() - data_start
 
                 # Run optimizer and calculate loss.
+                train_start = time.time()
                 batch_summary, batch_loss, batch_error, _ = sess.run(
                     [summary_tf, loss_tf, error_tf, train_op_tf],
                     feed_dict={input_image_tf: images_batch,
                                y_true_tf: labels_batch, training_tf: True})
-
                 time_train = time.time() - train_start
+
                 batch_summary_time = sess.run(
                     summary_time_tf,
-                    feed_dict={time_preprocess_tf: dataset_train.time_preprocess,
-                               time_train_tf: train_start})
+                    feed_dict={time_data_tf: time_data,
+                               time_train_tf: time_train})
 
                 if args.log_name:
                     train_writer.add_summary(batch_summary, global_step)
@@ -162,14 +164,12 @@ with tf.Session(config=config) as sess:
             console_output = 'epoch %2d ' % epoch
 
             if train_step:
-                console_output += 'loss %.6f err %.2f | ' % (
-                    train_loss / train_step,
-                    train_error / train_step * 100)
+                console_output += 'loss %.6f err %.6f | ' % (
+                    train_loss / train_step, train_error / train_step)
 
             if valid_step:
-                console_output += 'val_loss: %.6f val_err %.2f' % (
-                    valid_loss / valid_step,
-                    valid_error / valid_step * 100)
+                console_output += 'val_loss: %.6f val_err %.6f' % (
+                    valid_loss / valid_step, valid_error / valid_step)
 
             console_output_size = len(console_output)
 
