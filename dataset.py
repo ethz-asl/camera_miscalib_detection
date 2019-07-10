@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import time
 import glob
+import sys
 import threading
 
 import numpy as np
@@ -13,7 +14,8 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='', remove_mean=False, remove_std=False,
-                 scaler_batch_size=32, num_of_samples=-1, internal_shuffle=False, verbose=0, n_jobs=1):
+                 scaler_batch_size=32, num_of_samples=-1, internal_shuffle=False,
+                 scaler_epochs=128, verbose=0, n_jobs=1):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -80,13 +82,26 @@ class Dataset(object):
             from sklearn.preprocessing import StandardScaler
             self.scaler = StandardScaler(with_mean=remove_mean, with_std=remove_std)
 
+            if self.verbose > 0:
+                print_width = 9
+                sys.stdout.write("Training scaler. " + ' ' * print_width)
+
             # Arbitrary sampling of data to determine mean.
             # Hacky, but much faster than iterating over the whole data.
-            for epoch in range(128):
+            for epoch in range(scaler_epochs):
                 ids_batch = np.random.choice(self.n_samples, scaler_batch_size)
                 images_batch, _ = self.get_outputs(ids_batch, raw=True)
                 images_batch = np.reshape(images_batch, (images_batch.shape[0], -1))
                 self.scaler.partial_fit(images_batch)
+
+                if self.verbose > 0:
+                    sys.stdout.write('\b' * print_width)
+                    sys.stdout.write('%4d/%4d' % (epoch, scaler_epochs))
+                    sys.stdout.flush()
+
+            if self.verbose > 0:
+                print()
+
             self.use_scaler = True
 
         # Get final output shape.
