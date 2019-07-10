@@ -9,6 +9,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 import cv2
+from sklearn.preprocessing import StandardScaler
 
 import carnivalmirror as cm
 

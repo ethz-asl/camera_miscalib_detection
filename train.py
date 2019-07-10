@@ -167,11 +167,11 @@ with tf.Session(config=config) as sess:
             console_output = 'epoch %2d ' % epoch
 
             if train_step:
-                console_output += 'loss %.6f err %.6f | ' % (
+                console_output += 'Train: loss_mse %.4f err_mae %.4f | ' % (
                     train_loss / train_step, train_error / train_step)
 
             if valid_step:
-                console_output += 'val_loss: %.6f val_err %.6f' % (
+                console_output += 'Val: loss_mse: %.4f err_mae %.4f' % (
                     valid_loss / valid_step, valid_error / valid_step)
 
             console_output_size = len(console_output)
