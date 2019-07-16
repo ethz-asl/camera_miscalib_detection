@@ -1,7 +1,10 @@
 from __future__ import print_function
 import numpy as np
 import threading
-import Queue as queue
+try:
+    import Queue as queue
+except:
+    import queue
 import sys
 
 class Generator(object):
