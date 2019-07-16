@@ -148,7 +148,7 @@ class Dataset(object):
             # Sample a miscalibration, apply it, and calculate the respective APPD
             miscal = self.samplers[cal_group].next()
             appd = miscal.appd(reference=self.samplers[cal_group].reference,
-                               width=cal_width, height=cal_height, normalized=True,
+                               width=target_width, height=target_width, normalized=True,
                                map_width=target_width, map_height=target_height)
             miscals.append(miscal)
 
