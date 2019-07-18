@@ -26,7 +26,7 @@ class Dataset(object):
         self.use_scaler = False
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.resolution_reduction_factor = 4
+        self.resolution_reduction_factor = 2
         self.label_scale_factor = 100
 
         self._lock_appd = threading.Lock()
@@ -136,8 +136,8 @@ class Dataset(object):
             cal_group = self.cal_group_assignment[id]
             cal_width = self.cal_groups[cal_group]['width'].values[0]
             cal_height = self.cal_groups[cal_group]['height'].values[0]
-            target_width = cal_width / self.resolution_reduction_factor
-            target_height = cal_height / self.resolution_reduction_factor
+            target_width = int(float(cal_width) / self.resolution_reduction_factor)
+            target_height = int(float(cal_height) / self.resolution_reduction_factor)
             cal_infos.append((cal_group, cal_width, cal_height, target_width, target_height))
 
         miscals = []
@@ -148,7 +148,7 @@ class Dataset(object):
             # Sample a miscalibration, apply it, and calculate the respective APPD
             miscal = self.samplers[cal_group].next()
             appd = miscal.appd(reference=self.samplers[cal_group].reference,
-                               width=cal_width, height=cal_height, normalized=True,
+                               width=target_width, height=target_width, normalized=True,
                                map_width=target_width, map_height=target_height)
             miscals.append(miscal)
 
