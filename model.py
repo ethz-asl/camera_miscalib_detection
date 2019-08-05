@@ -1,5 +1,20 @@
+from __future__ import print_function
 import tensorflow as tf
 
+def add_conv_pool_layer(input, scope, filters=1, kernel_size=(3,3)):
+    with tf.name_scope(scope):
+        conv1 = tf.keras.layers.Conv2D(filters=filters, kernel_size=kernel_size,
+                padding="same", activation=tf.nn.relu, use_bias=True,
+                kernel_initializer='glorot_uniform', name="conv1")(input)
+
+        conv2 = tf.keras.layers.Conv2D(filters=filters, kernel_size=kernel_size,
+                padding="same", activation=tf.nn.relu, use_bias=True,
+                kernel_initializer='glorot_uniform', name="conv2")(conv1)
+
+        pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
+                name="pool1")(conv2)
+
+    return pool1
 
 def init_model(input_shape):
     # Input layer block.
@@ -9,81 +24,30 @@ def init_model(input_shape):
 
     training = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool), shape=(), name="training")
 
-    # Convolutional layer block.
-    with tf.name_scope("conv_block_1"):
-        conv1 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv1")(input_image)
-
-        conv2 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv2")(conv1)
-
-        pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
-                                             name="pool1")(conv2)
-
-    with tf.name_scope("conv_block_2"):
-        conv3 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv3")(pool1)
-
-        conv4 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv4")(conv3)
-
-        pool2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
-                                             name="pool2")(conv4)
-
-    with tf.name_scope("conv_block_3"):
-        conv5 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv5")(pool2)
-
-        conv6 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv6")(conv5)
-
-        pool3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
-                                             name="pool3")(conv6)
-
-    with tf.name_scope("conv_block_4"):
-        conv7 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv7")(pool3)
-
-        conv8 = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3),
-                                       padding="same", activation=tf.nn.relu, use_bias=True,
-                                       kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                       name="conv8")(conv7)
-
-        pool4 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2),
-                                             name="pool4")(conv8)
+    # Convolutional layer blocks.
+    conv_block_1 = add_conv_pool_layer(input_image, 'conv_block_1', filters=16)
+    conv_block_2 = add_conv_pool_layer(conv_block_1, 'conv_block_2', filters=32)
+    conv_block_3 = add_conv_pool_layer(conv_block_2, 'conv_block_3', filters=64)
+    conv_block_4 = add_conv_pool_layer(conv_block_3, 'conv_block_4', filters=64)
 
     # Flatten
-    flatten = tf.keras.layers.Flatten()(pool4)
+    flatten = tf.keras.layers.Flatten()(conv_block_4)
 
     # Dense layers.
-    dense1 = tf.keras.layers.Dense(units=256, activation=tf.nn.relu,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
+    dense1 = tf.keras.layers.Dense(units=512, activation=tf.nn.relu,
+                                   kernel_initializer='glorot_uniform',
                                    use_bias=True, name="dense1")(flatten)
 
     dense1_drop = tf.keras.layers.Dropout(rate=0.5, name='dense1_drop')(dense1, training=training)
 
-    dense2 = tf.keras.layers.Dense(units=64, activation=tf.nn.relu,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
+    dense2 = tf.keras.layers.Dense(units=256, activation=tf.nn.relu,
+                                   kernel_initializer='glorot_uniform',
                                    use_bias=True, name="dense2")(dense1_drop)
 
     dense2_drop = tf.keras.layers.Dropout(rate=0.5, name='dense2_drop')(dense2, training=training)
 
     y_pred = tf.keras.layers.Dense(units=1, activation=None,
-                                   kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                                   kernel_initializer='glorot_uniform',
                                    use_bias=True, name="output")(dense2_drop)
 
     # Loss and optimizer.
@@ -95,13 +59,17 @@ def init_model(input_shape):
     # Statistics.
     error = tf.reduce_mean(tf.abs(y_pred - y_true), name='error_mae')
 
-    time_preprocess = tf.placeholder(dtype=tf.float32, shape=(), name='time_preprocess')
+    time_data = tf.placeholder(dtype=tf.float32, shape=(), name='time_data')
     time_train = tf.placeholder(dtype=tf.float32, shape=(), name='time_train')
 
     with tf.name_scope('Summary'):
         tf.summary.scalar('loss_mse', loss, collections=['summary'])
         tf.summary.scalar("error_mae", error, collections=['summary'])
+        tf.summary.histogram('appd', y_true, collections=['summary'])
 
     with tf.name_scope('Timings'):
-        tf.summary.scalar('preprocess', time_preprocess, collections=['summary_time'])
+        tf.summary.scalar('data', time_data, collections=['summary_time'])
         tf.summary.scalar('train', time_train, collections=['summary_time'])
+    
+    with tf.name_scope('Images'):
+        tf.summary.image('input_images', input_image, max_outputs=3, collections=['summary'])
