@@ -148,8 +148,7 @@ class Dataset(object):
             # Sample a miscalibration, apply it, and calculate the respective APPD
             miscal = self.samplers[cal_group].next()
             appd = miscal.appd(reference=self.samplers[cal_group].reference,
-                               width=target_width, height=target_width, normalized=True,
-                               map_width=target_width, map_height=target_height)
+                               width=target_width, height=target_width, normalized=True)
             miscals.append(miscal)
 
             label = appd * self.label_scale_factor
@@ -232,7 +231,7 @@ class Dataset(object):
                                             appd_range_bins=20, init_jobs=self.n_jobs,
                                             width=output_width, height=output_height,
                                             min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
-            #sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=self.n_jobs*64, n_jobs=n_jobs_per_group)
+            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=self.n_jobs*64, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
 
     def stop(self):
