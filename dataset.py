@@ -205,8 +205,8 @@ class Dataset(object):
             cg = self.cal_groups[cal_group]
 
             # Calculate the rescaled output resolution
-            output_width = int(self.cal_groups[cal_group]['width'] / self.resolution_reduction_factor)
-            output_height = int(self.cal_groups[cal_group]['height'] / self.resolution_reduction_factor)
+            output_width = int(float(self.cal_groups[cal_group]['width']) / self.resolution_reduction_factor)
+            output_height = int(float(self.cal_groups[cal_group]['height']) / self.resolution_reduction_factor)
 
             # Create the reference (correct calibration)
             reference = cm.Calibration(K=[cg['fx'].values[0], cg['fy'].values[0], cg['cx'].values[0], cg['cy'].values[0]],
