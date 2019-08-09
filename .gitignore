@@ -1,5 +1,6 @@
-*.pyc
 data/
 models/
 tensorboard/
+
+*.pyc
 **/.idea

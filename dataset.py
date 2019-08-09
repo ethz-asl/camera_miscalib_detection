@@ -26,7 +26,7 @@ class Dataset(object):
         self.use_scaler = False
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.resolution_reduction_factor = 2
+        self.resolution_reduction_factor = 4
         self.label_scale_factor = 100
 
         self._lock_appd = threading.Lock()
@@ -134,21 +134,20 @@ class Dataset(object):
 
             # Load calibration info
             cal_group = self.cal_group_assignment[id]
-            cal_width = self.cal_groups[cal_group]['width'].values[0]
-            cal_height = self.cal_groups[cal_group]['height'].values[0]
-            target_width = int(float(cal_width) / self.resolution_reduction_factor)
-            target_height = int(float(cal_height) / self.resolution_reduction_factor)
-            cal_infos.append((cal_group, cal_width, cal_height, target_width, target_height))
+            target_width = int(float(self.cal_groups[cal_group]['width'].values[0]) / self.resolution_reduction_factor)
+            target_height = int(float(self.cal_groups[cal_group]['height'].values[0]) / self.resolution_reduction_factor)
+
+            cal_infos.append((cal_group, target_width, target_height))
 
         miscals = []
         self._lock_appd.acquire()
         for cal_info in cal_infos:
-            cal_group, cal_width, cal_height, target_width, target_height = cal_info
+            cal_group, target_width, target_height = cal_info
 
             # Sample a miscalibration, apply it, and calculate the respective APPD
             miscal = self.samplers[cal_group].next()
             appd = miscal.appd(reference=self.samplers[cal_group].reference,
-                               width=target_width, height=target_width, normalized=True)
+                               width=target_width, height=target_height, normalized=True)
             miscals.append(miscal)
 
             label = appd * self.label_scale_factor
@@ -157,7 +156,7 @@ class Dataset(object):
 
         # Form image batch from raw data.
         for cal_info, miscal in zip(cal_infos, miscals):
-            _, _, _, target_width, target_height = cal_info
+            _, target_width, target_height = cal_info
             image = miscal.rectify(image,
                                    result_width=target_width,
                                    result_height=target_height,
