@@ -64,8 +64,6 @@ tf.reset_default_graph()
 if args.v == 0:
     tf.logging.set_verbosity(tf.logging.ERROR)
 
-module = importlib.import_module(module_name)
-
 # Loads the init_model function from the file provided as model_name
 init_model = getattr(importlib.import_module(args.model_name), 'init_model')
 

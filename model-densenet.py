@@ -1,5 +1,6 @@
 from __future__ import print_function
 import tensorflow as tf
+import numpy as np
 
 def add_dense_block(input, scope, training, growth_rate=12, bottleneck_features = 48, kernel_size=(3,3),
                     add_bottleneck=False, n_composite_functions=6, transition_compression_factor=0.5):
@@ -10,8 +11,7 @@ def add_dense_block(input, scope, training, growth_rate=12, bottleneck_features 
             with tf.variable_scope('compfun%d' % (i + 1)):
                 # Bottleneck 1 x 1
                 if add_bottleneck:
-                    x_new = tf.keras.layers.BatchNormalization(axis=-1, training=training,
-                                                               name='btlnk_bn')(concatenated, training=training)
+                    x_new = tf.keras.layers.BatchNormalization(axis=-1, name='btlnk_bn')(concatenated, training=training)
 
                     x_new = tf.keras.layers.ReLU(name='btlnk_relu')(x_new)
 
@@ -22,8 +22,7 @@ def add_dense_block(input, scope, training, growth_rate=12, bottleneck_features 
                     x_new = concatenated
 
                 # Actual convolution n x n
-                batch_norm = tf.keras.layers.BatchNormalization(axis=-1, training=training, name='bn')(x_new,
-                                                                                                       training=training)
+                batch_norm = tf.keras.layers.BatchNormalization(axis=-1, name='bn')(x_new, training=training)
 
                 activation = tf.keras.layers.ReLU(name='relu')(batch_norm)
 
@@ -35,10 +34,9 @@ def add_dense_block(input, scope, training, growth_rate=12, bottleneck_features 
 
         with tf.variable_scope('transition'):
 
-            output = tf.keras.layers.BatchNormalization(axis=-1, training=training,
-                                                       name='bn')(concatenated, training=training)
+            output = tf.keras.layers.BatchNormalization(axis=-1, name='bn')(concatenated, training=training)
 
-            output_channels = np.floor(transition_compression_factor * output.get_shape().as_list()[1])
+            output_channels = int(np.floor(transition_compression_factor * output.get_shape().as_list()[1]))
 
             output = tf.keras.layers.Conv2D(filters=output_channels, kernel_size=1,
                                             padding='same', activation=None, use_bias=True,
