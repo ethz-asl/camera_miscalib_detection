@@ -25,6 +25,7 @@ parser.add_argument('-log_name', default=None)
 parser.add_argument('-checkpoints', default=5)
 parser.add_argument('-v', type=int, default=0)
 parser.add_argument('-njobs', type=int, default=8)
+parser.add_argument('-augment', type=bool, default=False)
 
 args = parser.parse_args()
 
@@ -32,9 +33,11 @@ args = parser.parse_args()
 from dataset import Dataset
 
 dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=True,
-                        num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v)
+                        num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v,
+                        augmentation=args.augment)
 dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=True,
-                        num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v)
+                        num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v,
+                        augmentation=args.augment)
 
 dataset_train.train_scaler(remove_mean=True, remove_std=True)
 dataset_valid.set_scaler(dataset_train.get_scaler())

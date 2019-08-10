@@ -16,7 +16,7 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='',  num_of_samples=-1,
-                 internal_shuffle=False, n_jobs=1, verbose=0):
+                 internal_shuffle=False, n_jobs=1, verbose=0, augmentation=False):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -26,6 +26,7 @@ class Dataset(object):
         self.use_scaler = False
         self.n_jobs = n_jobs
         self.verbose = verbose
+        self.augmentation = augmentation
         self.resolution_reduction_factor = 4
         self.label_scale_factor = 100
 
@@ -128,7 +129,7 @@ class Dataset(object):
         cal_infos = []
         for id in ids:
             # Load the image.
-            image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR)
+            image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR)[::-1] # to load in rgb instead of bgr
             assert(image.shape[-1] == 3)
             images.append(image)
 
@@ -161,6 +162,10 @@ class Dataset(object):
                                    result_width=target_width,
                                    result_height=target_height,
                                    mode='preserving')
+
+            # Apply data augmentation
+            if self.augmentation:
+                image = self.image_augmentation(image)
 
             # Collect batch data.
             image_outputs.append(image)
@@ -242,3 +247,21 @@ class Dataset(object):
                 self.samplers[cal_group].stop()
             except:
                 pass
+
+    def image_augmentation(self, image):
+
+        # random brightness and saturation
+        # convert to HSV colorspace from BGR colorspace
+        hsv = cv2.cvtColor(image[::-1], cv2.COLOR_BGR2HSV)
+        rand_value = np.random.uniform(0.3, 1.0)
+        rand_saturation = np.random.uniform(0.9, 1.1)
+        hsv[:, :, 2] = rand_value * hsv[:, :, 2]
+        hsv[:, :, 2] = rand_saturation * hsv[:, :, 1]
+        # convert back to BGR colorspace
+        image = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[::-1]
+
+        # add Gaussian noise
+        noise = np.random.normal(0, 10, size=image.shape)
+        image += noise
+
+        return image
