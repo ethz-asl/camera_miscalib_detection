@@ -7,6 +7,9 @@ import time
 # Parse command line arguments.
 import argparse
 
+# Load models dynamically
+import importlib
+
 parser = argparse.ArgumentParser()
 parser.add_argument('index')
 parser.add_argument('train_selector')
@@ -15,6 +18,7 @@ parser.add_argument('-n_train_samples', type=int, default=-1)
 parser.add_argument('-n_valid_samples', type=int, default=-1)
 parser.add_argument('-batch_size', type=int, default=32)
 parser.add_argument('-epochs', type=int, default=100)
+parser.add_argument('-model_name', default='model')
 parser.add_argument('-model_path', default='models/test_model/')
 parser.add_argument('-log_path', default='tensorboard/')
 parser.add_argument('-log_name', default=None)
@@ -60,7 +64,10 @@ tf.reset_default_graph()
 if args.v == 0:
     tf.logging.set_verbosity(tf.logging.ERROR)
 
-from model import init_model
+module = importlib.import_module(module_name)
+
+# Loads the init_model function from the file provided as model_name
+init_model = getattr(importlib.import_module(args.model_name), 'init_model')
 
 print("Input shape: ", dataset_train.shape)
 init_model(dataset_train.shape)
