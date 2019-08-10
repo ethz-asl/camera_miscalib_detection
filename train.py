@@ -72,6 +72,9 @@ init_model(dataset_train.shape)
 
 graph = tf.get_default_graph()
 
+# Calculate the number of parameters
+print("Model size: %d" % (np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])))
+
 # Inputs.
 input_image_tf = graph.get_tensor_by_name('input_image:0')
 y_true_tf = graph.get_tensor_by_name('y_true:0')
