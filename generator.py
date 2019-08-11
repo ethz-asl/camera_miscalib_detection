@@ -6,6 +6,7 @@ try:
 except:
     import queue
 import sys
+import time
 
 class Generator(object):
     def __init__(self, dataset, ids, batch_size=16, shuffle=False,
@@ -61,6 +62,9 @@ class Generator(object):
         return self
 
     def next(self):
+        t=time.time()
         images_batch, labels_batch = self._buffer.get(block=True)
+        #if time.time()-t > 0.05:
+        #    print("BUFFER TIME: ", time.time()-t)
         self._buffer_next()
         return images_batch, labels_batch
