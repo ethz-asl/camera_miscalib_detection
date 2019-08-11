@@ -32,6 +32,7 @@ args = parser.parse_args()
 # Load the dataset.
 from dataset import Dataset
 
+print('Dataset augmentation: ', args.augment)
 dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=True,
                         num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v,
                         augmentation=args.augment)

@@ -129,7 +129,7 @@ class Dataset(object):
         cal_infos = []
         for id in ids:
             # Load the image.
-            image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR)[::-1] # to load in rgb instead of bgr
+            image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR) # to load in rgb instead of bgr
             assert(image.shape[-1] == 3)
             images.append(image)
 
@@ -168,7 +168,7 @@ class Dataset(object):
                 image = self.image_augmentation(image)
 
             # Collect batch data.
-            image_outputs.append(image)
+            image_outputs.append(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
         # Convert to numpy array.
         image_outputs = np.array(image_outputs).astype(np.float)
@@ -252,16 +252,17 @@ class Dataset(object):
 
         # random brightness and saturation
         # convert to HSV colorspace from BGR colorspace
-        hsv = cv2.cvtColor(image[::-1], cv2.COLOR_BGR2HSV)
-        rand_value = np.random.uniform(0.3, 1.0)
-        rand_saturation = np.random.uniform(0.9, 1.1)
-        hsv[:, :, 2] = rand_value * hsv[:, :, 2]
-        hsv[:, :, 2] = rand_saturation * hsv[:, :, 1]
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        rand_value = np.random.uniform(0.3, 1.7)
+        rand_saturation = np.random.uniform(0.3, 1.7)
+        hsv[:, :, 0] = rand_value * hsv[:, :, 0]
+        hsv[:, :, 1] = rand_saturation * hsv[:, :, 1].astype(float)
         # convert back to BGR colorspace
-        image = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[::-1]
+        image = cv2.cvtColor(np.clip(hsv,0,255).astype(np.uint8), cv2.COLOR_HSV2BGR)
 
         # add Gaussian noise
-        noise = np.random.normal(0, 10, size=image.shape)
-        image += noise
-
+        noise = np.random.normal(0, 20, size=image.shape)
+        image = image.astype(float) + noise
+        image = np.clip(image, 0, 255).astype(np.uint8)
         return image
+
