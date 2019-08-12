@@ -160,7 +160,7 @@ class Dataset(object):
         #t_rect = 0
         #t_augment = 0
         # Form image batch from raw data.
-        for cal_info, miscal in zip(cal_infos, miscals):
+        for cal_info, miscal, image in zip(cal_infos, miscals, images):
             _, target_width, target_height = cal_info
             #tt=time.time()
             image = miscal.rectify(image,
