@@ -33,12 +33,12 @@ args = parser.parse_args()
 from dataset import Dataset
 
 print('Dataset augmentation: ', args.augment)
-dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=True,
+dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=False,
                         num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v,
-                        augmentation=args.augment)
-dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=True,
+                        augmentation=args.augment, mode='similarinbatch')
+dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=False,
                         num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v,
-                        augmentation=args.augment)
+                        augmentation=args.augment, mode='similarinbatch')
 
 dataset_train.train_scaler(remove_mean=True, remove_std=True)
 dataset_valid.set_scaler(dataset_train.get_scaler())
@@ -91,6 +91,9 @@ loss_tf = graph.get_tensor_by_name('loss_mse:0')
 error_tf = graph.get_tensor_by_name('error_mae:0')
 train_op_tf = graph.get_operation_by_name('train_op')
 
+consistency_loss_lambda_tf = graph.get_tensor_by_name('consistency_loss_lambda:0')
+
+
 # Summaries.
 summary_tf = tf.summary.merge_all('summary')
 summary_time_tf = tf.summary.merge_all('summary_time')
@@ -142,7 +145,9 @@ with tf.Session(config=config) as sess:
                 batch_summary, batch_loss, batch_error, _ = sess.run(
                     [summary_tf, loss_tf, error_tf, train_op_tf],
                     feed_dict={input_image_tf: images_batch,
-                               y_true_tf: labels_batch, training_tf: True})
+                               y_true_tf: labels_batch,
+                               training_tf: True,
+                               consistency_loss_lambda_tf: 0.01})
                 time_train = time.time() - train_start
 
                 batch_summary_time = sess.run(
@@ -164,7 +169,8 @@ with tf.Session(config=config) as sess:
                 batch_summary, batch_loss, batch_error = sess.run(
                     [summary_tf, loss_tf, error_tf],
                     feed_dict={input_image_tf: images_batch,
-                               y_true_tf: labels_batch})
+                               y_true_tf: labels_batch,
+                               consistency_loss_lambda_tf: 0.01})
 
                 if args.log_name:
                     valid_writer.add_summary(batch_summary, global_step)
