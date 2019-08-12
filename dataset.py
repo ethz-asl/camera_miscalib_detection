@@ -16,7 +16,7 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='',  num_of_samples=-1,
-                 internal_shuffle=False, n_jobs=1, verbose=0, augmentation=False):
+                 internal_shuffle=False, n_jobs=1, verbose=0, augmentation=False, mode='standard'):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -27,8 +27,13 @@ class Dataset(object):
         self.n_jobs = n_jobs
         self.verbose = verbose
         self.augmentation = augmentation
+        self.mode = mode
+        if self.mode == 'similarinbatch':
+            assert (internal_shuffle == False)
+
         self.resolution_reduction_factor = 4
         self.label_scale_factor = 100
+        self.similarity_width=10 #single side
 
         self._lock_appd = threading.Lock()
 
@@ -53,7 +58,9 @@ class Dataset(object):
         for folder_idx, folder in folders.iterrows():
             image_names = glob.glob(os.path.join(dir_path, folder['path_to_dir'])+'/*')
             n = len(image_names)
-            new_df = pd.DataFrame({'image_name': image_names, 'cal_group': [folder['cal_group']]*n})
+            new_df = pd.DataFrame({'image_name': image_names,
+                                   'cal_group': [folder['cal_group']]*n,
+                                   'folder': [folder['path_to_dir']]*n})
             data = pd.concat([data, new_df], sort=False)
 
         if self.verbose > 0:
@@ -78,6 +85,7 @@ class Dataset(object):
         # read data from the data-frame
         self.image_paths = data['image_name'].tolist()
         self.cal_group_assignment = data['cal_group'].tolist()
+        self.image_folder = data['folder'].tolist()
 
         # Get final output shape.
         output, _ = self.get_outputs([0])
@@ -120,6 +128,7 @@ class Dataset(object):
     def get_scaler(self):
         return deepcopy(self.scaler)
 
+
     def get_outputs(self, ids):
         image_outputs = []
         label_outputs = []
@@ -127,6 +136,21 @@ class Dataset(object):
         # First load images
         images = []
         cal_infos = []
+
+        # If we wish similar images in the batch (for batch consistency loss) we use only the first id and then
+        # find similar images. Then we replace the original list of ids with the new one
+        if self.mode == 'similarinbatch':
+            ids_valid = list()
+            ids_candidates = np.arange(ids[0]-self.similarity_width, ids[0]+self.similarity_width+1)
+            # remove entries if their indices are invalid or come from a different folder
+            for id in ids_candidates:
+                if id < 0 or id >= self.n_samples or self.image_folder[id] != self.image_folder[ids[0]]:
+                    continue
+                ids_valid.append(id)
+
+            ids_reselected = np.random.choice(ids_valid, size=len(ids), replace=(len(ids_valid)<len(ids)))
+            ids = ids_reselected
+
         for id in ids:
             # Load the image.
             image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR) # to load in rgb instead of bgr
