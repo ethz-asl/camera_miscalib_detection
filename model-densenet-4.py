@@ -88,7 +88,7 @@ def init_model(input_shape):
                                     add_bottleneck=True, n_composite_functions=18, transition_compression_factor=0.5)
 
     # Flatten
-    flatten = tf.keras.layers.Flatten()(dense_block_3)
+    flatten = tf.keras.layers.Flatten()(dense_block_4)
 
     # Dense layers.
     dense1 = tf.keras.layers.Dense(units=512, activation=tf.nn.relu,
