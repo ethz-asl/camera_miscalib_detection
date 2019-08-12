@@ -155,7 +155,7 @@ class Dataset(object):
         self._lock_appd.release()
 
         # Form image batch from raw data.
-        for cal_info, miscal in zip(cal_infos, miscals):
+        for cal_info, miscal, image in zip(cal_infos, miscals, images):
             _, target_width, target_height = cal_info
             image = miscal.rectify(image,
                                    result_width=target_width,
