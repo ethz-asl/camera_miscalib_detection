@@ -104,19 +104,19 @@ def init_model(input_shape):
                                    kernel_initializer='glorot_uniform',
                                    use_bias=True, name="dense1")(flatten)
 
-    dense1_drop = tf.keras.layers.Dropout(rate=0.5, name='dense1_drop')(dense1, training=training)
+    dense1_drop = tf.keras.layers.Dropout(rate=0.75, name='dense1_drop')(dense1, training=training)
 
     dense2 = tf.keras.layers.Dense(units=256, activation=tf.nn.relu,
                                    kernel_initializer='glorot_uniform',
                                    use_bias=True, name="dense2")(dense1_drop)
 
-    dense2_drop = tf.keras.layers.Dropout(rate=0.5, name='dense2_drop')(dense2, training=training)
+    dense2_drop = tf.keras.layers.Dropout(rate=0.75, name='dense2_drop')(dense2, training=training)
 
     dense3 = tf.keras.layers.Dense(units=128, activation=tf.nn.relu,
                                    kernel_initializer='glorot_uniform',
                                    use_bias=True, name="dense3")(dense2_drop)
 
-    dense3_drop = tf.keras.layers.Dropout(rate=0.5, name='dense3_drop')(dense3, training=training)
+    dense3_drop = tf.keras.layers.Dropout(rate=0.6, name='dense3_drop')(dense3, training=training)
 
     dense4 = tf.keras.layers.Dense(units=64, activation=tf.nn.relu,
                                    kernel_initializer='glorot_uniform',

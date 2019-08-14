@@ -38,7 +38,7 @@ dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuff
                         augmentation=args.augment, mode='similarinbatch')
 dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=False,
                         num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v,
-                        augmentation=args.augment, mode='similarinbatch')
+                        augmentation=args.augment, mode='standard')
 
 dataset_train.train_scaler(remove_mean=True, remove_std=True)
 dataset_valid.set_scaler(dataset_train.get_scaler())
@@ -129,6 +129,8 @@ with tf.Session(config=config) as sess:
         valid_error = 0
         valid_step = 0
 
+        batch_consistency_lambda = 0.001 if epoch < 8 else 0.0
+
         # Sequence of train and validation batches.
         batches = np.array([1] * gen_train.n_batches + [0] * gen_valid.n_batches)
         np.random.shuffle(batches)
@@ -147,7 +149,8 @@ with tf.Session(config=config) as sess:
                     feed_dict={input_image_tf: images_batch,
                                y_true_tf: labels_batch,
                                training_tf: True,
-                               consistency_loss_lambda_tf: 0.01})
+                               consistency_loss_lambda_tf: batch_consistency_lambda
+                              })
                 time_train = time.time() - train_start
 
                 batch_summary_time = sess.run(
@@ -170,8 +173,8 @@ with tf.Session(config=config) as sess:
                     [summary_tf, loss_tf, error_tf],
                     feed_dict={input_image_tf: images_batch,
                                y_true_tf: labels_batch,
-                               consistency_loss_lambda_tf: 0.01})
-
+                               consistency_loss_lambda_tf: batch_consistency_lambda
+                              })
                 if args.log_name:
                     valid_writer.add_summary(batch_summary, global_step)
 

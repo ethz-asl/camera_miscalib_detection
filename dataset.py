@@ -33,7 +33,7 @@ class Dataset(object):
 
         self.resolution_reduction_factor = 4
         self.label_scale_factor = 100
-        self.similarity_width=10 #single side
+        self.similarity_width=5 #single side
 
         self._lock_appd = threading.Lock()
 
@@ -56,7 +56,7 @@ class Dataset(object):
         # load the images from every folder
         data = pd.DataFrame(columns=['image_name', 'cal_group'])
         for folder_idx, folder in folders.iterrows():
-            image_names = glob.glob(os.path.join(dir_path, folder['path_to_dir'])+'/*')
+            image_names = sorted(glob.glob(os.path.join(dir_path, folder['path_to_dir'])+'/*'))
             n = len(image_names)
             new_df = pd.DataFrame({'image_name': image_names,
                                    'cal_group': [folder['cal_group']]*n,
@@ -92,7 +92,7 @@ class Dataset(object):
         self.shape = output[0].shape
 
     def train_scaler(self, remove_mean=False, remove_std=False,
-                     scaler_batch_size=32, scaler_epochs=25):
+                     scaler_batch_size=32, scaler_epochs=256):
         assert(remove_mean or remove_std)
 
         # Mean and std scaling.
@@ -156,7 +156,6 @@ class Dataset(object):
             image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR) # to load in rgb instead of bgr
             assert(image.shape[-1] == 3)
             images.append(image)
-
             # Load calibration info
             cal_group = self.cal_group_assignment[id]
             target_width = int(float(self.cal_groups[cal_group]['width'].values[0]) / self.resolution_reduction_factor)
@@ -167,16 +166,27 @@ class Dataset(object):
         miscals = []
         self._lock_appd.acquire()
         #t=time.time()
-        for cal_info in cal_infos:
-            cal_group, target_width, target_height = cal_info
-
-            # Sample a miscalibration, apply it, and calculate the respective APPD
+        
+        # If using similar in batch, use the same miscalibration for all images in the batch
+        if self.mode == 'similarinbatch':
+            cal_group, target_width, target_height = cal_infos[0]
             miscal = self.samplers[cal_group].next()
             appd = miscal.appd(reference=self.samplers[cal_group].reference,
                                width=target_width, height=target_height, normalized=True)
-            miscals.append(miscal)
-
             label = appd * self.label_scale_factor
+
+        for cal_info in cal_infos:
+            if self.mode == 'standard':
+                cal_group, target_width, target_height = cal_info
+
+                # Sample a miscalibration, apply it, and calculate the respective APPD
+                miscal = self.samplers[cal_group].next()
+                appd = miscal.appd(reference=self.samplers[cal_group].reference,
+                                   width=target_width, height=target_height, normalized=True)
+
+                label = appd * self.label_scale_factor
+            
+            miscals.append(miscal)
             label_outputs.append(label)
         self._lock_appd.release()
         #if time.time()-t > 0.01: print(" BATCH APPD time: ", time.time()-t)
@@ -184,7 +194,7 @@ class Dataset(object):
         #t_rect = 0
         #t_augment = 0
         # Form image batch from raw data.
-        for cal_info, miscal in zip(cal_infos, miscals):
+        for cal_info, miscal, image in zip(cal_infos, miscals, images):
             _, target_width, target_height = cal_info
             #tt=time.time()
             image = miscal.rectify(image,
