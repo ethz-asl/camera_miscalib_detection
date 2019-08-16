@@ -29,13 +29,16 @@ parser.add_argument('-augment', type=bool, default=False)
 
 args = parser.parse_args()
 
+# Loads the init_model function from the file provided as model_name
+init_model = getattr(importlib.import_module(args.model_name), 'init_model')
+
 # Load the dataset.
 from dataset import Dataset
 
 print('Dataset augmentation: ', args.augment)
 dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=False,
                         num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v,
-                        augmentation=args.augment, mode='similarinbatch')
+                        augmentation=args.augment, mode='similarpair')
 dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=False,
                         num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v,
                         augmentation=args.augment, mode='standard')
@@ -68,9 +71,7 @@ tf.reset_default_graph()
 if args.v == 0:
     tf.logging.set_verbosity(tf.logging.ERROR)
 
-# Loads the init_model function from the file provided as model_name
-init_model = getattr(importlib.import_module(args.model_name), 'init_model')
-
+# Print the model shape
 print("Input shape: ", dataset_train.shape)
 init_model(dataset_train.shape)
 
@@ -129,7 +130,7 @@ with tf.Session(config=config) as sess:
         valid_error = 0
         valid_step = 0
 
-        batch_consistency_lambda = 0.001 if epoch < 8 else 0.0
+        batch_consistency_lambda = 0.001 #if epoch < 8 else 0.0
 
         # Sequence of train and validation batches.
         batches = np.array([1] * gen_train.n_batches + [0] * gen_valid.n_batches)
@@ -140,6 +141,10 @@ with tf.Session(config=config) as sess:
             if train:
                 data_start = time.time()
                 images_batch, labels_batch = gen_train.next()
+                # Make sure that the batch size is even (needed for the pair consistency)
+                if len(images_batch)%2==1: 
+                    images_batch=images_batch[:-1]
+                    labels_batch=labels_batch[:-1]
                 time_data = time.time() - data_start
 
                 # Run optimizer and calculate loss.
@@ -167,6 +172,10 @@ with tf.Session(config=config) as sess:
                 train_step += 1
             else:
                 images_batch, labels_batch = gen_valid.next()
+                # Make sure that the batch size is even (needed for the pair consistency)
+                if len(images_batch)%2==1: 
+                    images_batch=images_batch[:-1]
+                    labels_batch=labels_batch[:-1]
 
                 # Calculate validation loss.
                 batch_summary, batch_loss, batch_error = sess.run(

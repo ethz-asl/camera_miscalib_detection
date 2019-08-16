@@ -28,7 +28,7 @@ class Dataset(object):
         self.verbose = verbose
         self.augmentation = augmentation
         self.mode = mode
-        if self.mode == 'similarinbatch':
+        if self.mode == 'similarinbatch' or self.mode=='similarpair':
             assert (internal_shuffle == False)
 
         self.resolution_reduction_factor = 4
@@ -151,6 +151,24 @@ class Dataset(object):
             ids_reselected = np.random.choice(ids_valid, size=len(ids), replace=(len(ids_valid)<len(ids)))
             ids = ids_reselected
 
+        elif self.mode == 'similarpair':
+            if len(ids)%2 != 0: print("WARNING: batch size %d detected, should be even if 'similarpair' mode is used" % len(ids))
+            
+            for id_idx in range(len(ids)):
+                if id_idx%2 == 0:
+                     target_id = ids[id_idx]
+                else:      
+                     # Check if there is a next image in the sequence
+                     test_id = target_id+1
+                     if not (test_id < 0 or test_id >= self.n_samples or self.image_folder[test_id] != self.image_folder[target_id]):
+                         ids[id_idx] = test_id
+                         continue
+                     test_id = target_id-1
+                     if not (test_id < 0 or test_id >= self.n_samples or self.image_folder[test_id] != self.image_folder[target_id]):
+                         ids[id_idx] = test_id
+                         continue
+                     ids[id_idx] = target_id
+
         for id in ids:
             # Load the image.
             image = cv2.imread(self.image_paths[id], cv2.IMREAD_COLOR) # to load in rgb instead of bgr
@@ -175,8 +193,19 @@ class Dataset(object):
                                width=target_width, height=target_height, normalized=True)
             label = appd * self.label_scale_factor
 
-        for cal_info in cal_infos:
+        for cal_idx, cal_info in enumerate(cal_infos):
             if self.mode == 'standard':
+                cal_group, target_width, target_height = cal_info
+
+                # Sample a miscalibration, apply it, and calculate the respective APPD
+                miscal = self.samplers[cal_group].next()
+                appd = miscal.appd(reference=self.samplers[cal_group].reference,
+                                   width=target_width, height=target_height, normalized=True)
+
+                label = appd * self.label_scale_factor
+            
+            if self.mode == 'similarpair' and cal_idx%2==0:
+                #sample only every second (the first image in a pair) and reuse the miscal and appd for the second in the pair
                 cal_group, target_width, target_height = cal_info
 
                 # Sample a miscalibration, apply it, and calculate the respective APPD
