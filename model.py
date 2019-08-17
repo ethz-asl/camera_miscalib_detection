@@ -65,7 +65,9 @@ def init_model(input_shape):
     with tf.name_scope('Summary'):
         tf.summary.scalar('loss_mse', loss, collections=['summary'])
         tf.summary.scalar("error_mae", error, collections=['summary'])
-        tf.summary.histogram('appd', y_true, collections=['summary'])
+        tf.summary.histogram('appd_true', y_true, collections=['summary'])
+        tf.summary.histogram('appd_pred', y_pred, collections=['summary'])
+        tf.summary.histogram('appd_error', tf.abs(y_pred - y_true), collections=['summary'])
 
     with tf.name_scope('Timings'):
         tf.summary.scalar('data', time_data, collections=['summary_time'])
