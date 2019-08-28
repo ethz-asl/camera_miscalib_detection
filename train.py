@@ -14,6 +14,7 @@ parser.add_argument('valid_selector')
 parser.add_argument('-n_train_samples', type=int, default=-1)
 parser.add_argument('-n_valid_samples', type=int, default=-1)
 parser.add_argument('-batch_size', type=int, default=32)
+parser.add_argument('-buffer_size', type=int, default=32)
 parser.add_argument('-epochs', type=int, default=100)
 parser.add_argument('-model_path', default='models/test_model/')
 parser.add_argument('-log_path', default='tensorboard/')
@@ -32,7 +33,7 @@ dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuff
 dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=True,
                         num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v)
 
-dataset_train.train_scaler(remove_mean=True, remove_std=True)
+dataset_train.train_scaler(remove_mean=True, remove_std=True, scaler_batch_size=args.batch_size)
 dataset_valid.set_scaler(dataset_train.get_scaler())
 
 print('Train with %d images' % (dataset_train.n_samples))
@@ -44,8 +45,8 @@ ids_valid = np.arange(dataset_valid.n_samples)
 # Create batch generators for the train and validation sets.
 from generator import Generator
 
-gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=True, verbose=args.v)
-gen_valid = Generator(dataset_valid, ids_valid, batch_size=args.batch_size, shuffle=True, verbose=args.v)
+gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=True, buffer_size=args.buffer_size, verbose=args.v)
+gen_valid = Generator(dataset_valid, ids_valid, batch_size=args.batch_size, shuffle=True, buffer_size=args.buffer_size, verbose=args.v)
 
 # Create model directory if it doesn't exist.
 if not os.path.exists(args.model_path):
@@ -191,3 +192,6 @@ with tf.Session(config=config) as sess:
 
             # Update best loss.
             best_loss = final_valid_loss
+
+dataset_train.stop()
+dataset_valid.stop()

@@ -26,7 +26,7 @@ class Dataset(object):
         self.use_scaler = False
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.resolution_reduction_factor = 4
+        self.resolution_reduction_factor = 1
         self.label_scale_factor = 100
 
         self._lock_appd = threading.Lock()
@@ -226,11 +226,11 @@ class Dataset(object):
 
             # Initialize the sampler
             sampler = cm.UniformAPPDSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0],
-                                            reference=reference, temperature=5, appd_range_dicovery_samples=2000,
+                                            reference=reference, temperature=5, appd_range_dicovery_samples=1000,
                                             appd_range_bins=20, init_jobs=self.n_jobs,
                                             width=output_width, height=output_height,
                                             min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
-            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=self.n_jobs*64, n_jobs=n_jobs_per_group)
+            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
 
     def stop(self):

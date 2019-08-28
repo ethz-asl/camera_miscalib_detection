@@ -1,6 +1,7 @@
 data/
 models/
 tensorboard/
+KITTI/
 
 *.pyc
 **/.idea
