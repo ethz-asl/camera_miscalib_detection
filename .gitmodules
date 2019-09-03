@@ -1,0 +1,3 @@
+[submodule "utils/orbslam_evaluation/library/rpg_trajectory_evaluation"]
+	path = utils/orbslam_evaluation/library/rpg_trajectory_evaluation
+	url = https://github.com/Mayankm96/rpg_trajectory_evaluation.git

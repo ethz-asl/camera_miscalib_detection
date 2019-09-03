@@ -1,0 +1,14 @@
+diagnostic_images: 1
+max_px_movement: 100
+loud_ugliness_guard: 1
+min_cropped_width: 600
+min_cropped_height: 200
+fx_range: [-0.05, 0.2]
+fy_range: [-0.05, 0.2]
+cx_maxoffset: [-0.05, 0.05]
+cy_maxoffset: [-0.05, 0.05]
+k1_maxoffset: 0.15
+k2_maxoffset: 0.15
+k3_maxoffset: 0
+p1_maxoffset: 0.15
+p2_maxoffset: 0.15
