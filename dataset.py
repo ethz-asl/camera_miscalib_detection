@@ -142,7 +142,6 @@ class Dataset(object):
 
         miscals = []
         self._lock_appd.acquire()
-        #t=time.time()
         for cal_info in cal_infos:
             cal_group, target_width, target_height = cal_info
 
@@ -155,28 +154,21 @@ class Dataset(object):
             label = appd * self.label_scale_factor
             label_outputs.append(label)
         self._lock_appd.release()
-        #if time.time()-t > 0.01: print(" BATCH APPD time: ", time.time()-t)
-        #t=time.time()
-        #t_rect = 0
-        #t_augment = 0
+
         # Form image batch from raw data.
         for cal_info, miscal, image in zip(cal_infos, miscals, images):
             _, target_width, target_height = cal_info
-            #tt=time.time()
+
             image = miscal.rectify(image,
                                    result_width=target_width,
                                    result_height=target_height,
                                    mode='preserving')
-            #t_rect+=time.time()-tt
-            # Apply data augmentation
-            #tt=time.time()
             if self.augmentation:
                 image = self.image_augmentation(image)
-            #t_augment+=time.time()-tt
+
             # Collect batch data.
             image_outputs.append(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
-        #if time.time()-t > 0.01: print(" BATCH rect & augment time: ",t_rect, t_augment )
         # Convert to numpy array.
         image_outputs = np.array(image_outputs).astype(np.float)
         label_outputs = np.array(label_outputs).astype(np.float)
@@ -238,11 +230,11 @@ class Dataset(object):
 
             # Initialize the sampler
             sampler = cm.UniformAPPDSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0],
-                                            reference=reference, temperature=5, appd_range_dicovery_samples=2000,
+                                            reference=reference, temperature=5, appd_range_dicovery_samples=1000,
                                             appd_range_bins=20, init_jobs=self.n_jobs,
                                             width=output_width, height=output_height,
                                             min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
-            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=self.n_jobs*64, n_jobs=n_jobs_per_group)
+            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
 
     def stop(self):
