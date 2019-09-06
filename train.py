@@ -75,8 +75,8 @@ training_tf = graph.get_tensor_by_name('training:0')
 time_data_tf = graph.get_tensor_by_name('time_data:0')
 time_train_tf = graph.get_tensor_by_name('time_train:0')
 
-loss_tf = graph.get_tensor_by_name('loss_mse:0')
-error_tf = graph.get_tensor_by_name('error_mae:0')
+loss_tf = graph.get_tensor_by_name('loss:0')
+error_tf = graph.get_tensor_by_name('accuracy:0')
 train_op_tf = graph.get_operation_by_name('train_op')
 
 # Summaries.
@@ -167,11 +167,11 @@ with tf.Session(config=config) as sess:
             console_output = 'epoch %2d ' % epoch
 
             if train_step:
-                console_output += 'Train: loss_mse %.4f err_mae %.4f | ' % (
+                console_output += 'Train: loss %.4f accuracy %.4f | ' % (
                     train_loss / train_step, train_error / train_step)
 
             if valid_step:
-                console_output += 'Val: loss_mse: %.4f err_mae %.4f' % (
+                console_output += 'Val: loss: %.4f accuracy %.4f' % (
                     valid_loss / valid_step, valid_error / valid_step)
 
             console_output_size = len(console_output)

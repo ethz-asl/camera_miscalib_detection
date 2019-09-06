@@ -17,57 +17,61 @@ def add_conv_pool_layer(input, scope, filters=1, kernel_size=(3,3)):
     return pool1
 
 def init_model(input_shape):
-    # Input layer block.
-    input_image = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape, name='input_image')
 
-    y_true = tf.placeholder(dtype=tf.float32, shape=(None), name="y_true")
+    with tf.name_scope('model'):
+        # Input layer block.
+        input_image = tf.placeholder(dtype=tf.float32, shape=(None,) + input_shape, name='input_image')
 
-    training = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool), shape=(), name="training")
+        y_true = tf.placeholder(dtype=tf.float32, shape=(None, 2), name="y_true")
 
-    # Convolutional layer blocks.
-    conv_block_1 = add_conv_pool_layer(input_image, 'conv_block_1', filters=16)
-    conv_block_2 = add_conv_pool_layer(conv_block_1, 'conv_block_2', filters=32)
-    conv_block_3 = add_conv_pool_layer(conv_block_2, 'conv_block_3', filters=64)
-    conv_block_4 = add_conv_pool_layer(conv_block_3, 'conv_block_4', filters=64)
+        training = tf.placeholder_with_default(tf.constant(False, dtype=tf.bool), shape=(), name="training")
 
-    # Flatten
-    flatten = tf.keras.layers.Flatten()(conv_block_4)
+        # Add VGG-16 Head
+        VGG16_MODEL = tf.keras.applications.VGG16(input_shape=input_shape,
+                                                  include_top=False,
+                                                  weights='imagenet')
+        VGG16_MODEL.trainable = False
 
-    # Dense layers.
-    dense1 = tf.keras.layers.Dense(units=512, activation=tf.nn.relu,
-                                   kernel_initializer='glorot_uniform',
-                                   use_bias=True, name="dense1")(flatten)
+        # Flatten using GAP
+        global_average_layer = tf.keras.layers.GlobalAveragePooling2D()(VGG16_MODEL)
 
-    dense1_drop = tf.keras.layers.Dropout(rate=0.5, name='dense1_drop')(dense1, training=training)
+        # Dense layers.
+        dense1 = tf.keras.layers.Dense(units=512, activation=tf.nn.relu,
+                                       kernel_initializer='glorot_uniform',
+                                       use_bias=True, name="dense1")(global_average_layer)
 
-    dense2 = tf.keras.layers.Dense(units=256, activation=tf.nn.relu,
-                                   kernel_initializer='glorot_uniform',
-                                   use_bias=True, name="dense2")(dense1_drop)
+        dense1_drop = tf.keras.layers.Dropout(rate=0.5, name='dense1_drop')(dense1, training=training)
 
-    dense2_drop = tf.keras.layers.Dropout(rate=0.5, name='dense2_drop')(dense2, training=training)
+        dense2 = tf.keras.layers.Dense(units=256, activation=tf.nn.relu,
+                                       kernel_initializer='glorot_uniform',
+                                       use_bias=True, name="dense2")(dense1_drop)
 
-    y_pred = tf.keras.layers.Dense(units=1, activation=None,
-                                   kernel_initializer='glorot_uniform',
-                                   use_bias=True, name="output")(dense2_drop)
+        dense2_drop = tf.keras.layers.Dropout(rate=0.5, name='dense2_drop')(dense2, training=training)
+
+        y_logits = tf.keras.layers.Dense(units=2, activation='none',
+                                       kernel_initializer='glorot_uniform',
+                                       use_bias=True, name="output")(dense2_drop)
+        y_pred = tf.nn.softmax(y_logits)
 
     # Loss and optimizer.
-    loss = tf.reduce_mean(tf.square(y_pred - y_true), name='loss_mse')
+    with tf.name_scope('cross_entropy'):
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y_true, logits=y_logits), name='loss')
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
-    train_op = optimizer.minimize(loss, name='train_op')
+    with tf.name_scope('train'):
+        optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
+        train_op = optimizer.minimize(loss, name='train_op')
 
     # Statistics.
-    error = tf.reduce_mean(tf.abs(y_pred - y_true), name='error_mae')
+    with tf.name_scope('test'):
+        correct_pred = tf.equal(tf.argmax(y_pred, 1), tf.argmax(y_true, 1))
+        accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32), name="accuracy")
 
     time_data = tf.placeholder(dtype=tf.float32, shape=(), name='time_data')
     time_train = tf.placeholder(dtype=tf.float32, shape=(), name='time_train')
 
     with tf.name_scope('Summary'):
-        tf.summary.scalar('loss_mse', loss, collections=['summary'])
-        tf.summary.scalar("error_mae", error, collections=['summary'])
-        tf.summary.histogram('appd_true', y_true, collections=['summary'])
-        tf.summary.histogram('appd_pred', y_pred, collections=['summary'])
-        tf.summary.histogram('appd_error', tf.abs(y_pred - y_true), collections=['summary'])
+        tf.summary.scalar('loss_categorical', loss, collections=['summary'])
+        tf.summary.scalar("accuracy", accuracy, collections=['summary'])
 
     with tf.name_scope('Timings'):
         tf.summary.scalar('data', time_data, collections=['summary_time'])

@@ -7,6 +7,21 @@ except:
     import queue
 import sys
 
+# Set threshold for classification
+# TODO (@Mayank): Move it somewhere proper
+THRESHOLD = 0.3
+
+def to_onehot(y, n_classes):
+    y_onehot = np.zeros((len(y), n_classes))
+    for i, cls in enumerate(y):
+        if cls > THRESHOLD:
+            # Miscalibrated
+            y_onehot[i, 1] = 1
+        else:
+            # Calibrated
+            y_onehot[i, 0] = 0
+    return y_onehot
+
 class Generator(object):
     def __init__(self, dataset, ids, batch_size=16, shuffle=False,
                  buffer_size=32, verbose=0):
@@ -17,6 +32,7 @@ class Generator(object):
         self.verbose = verbose
 
         self.n_samples = self.ids.size
+        self.n_classes = 2
         self.n_batches = int(np.ceil(float(self.n_samples) / self.batch_size))
         self.buffer_size = buffer_size
 
@@ -55,6 +71,7 @@ class Generator(object):
 
     def _buffer_next_worker(self, batch_ids):
         images_batch, labels_batch = self.dataset.get_outputs(batch_ids)
+        labels_batch = to_onehot(labels_batch, self.n_classes)
         self._buffer.put([images_batch, labels_batch])
 
     def __iter__(self):
