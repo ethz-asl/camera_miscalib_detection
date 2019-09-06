@@ -99,7 +99,8 @@ python run_orbslam.py -b ~/my_projects/ORB_SLAM2 \
                       -k ~/my_projects/data/kitti/2011_09_30_drive_0034 \
                       -e 2011_09_30_drive_0034 \
                       -t range \
-                      -f y -c y -k n             
+                      -f y -c y -d n \
+                      -n 20             
 ```
 
 For each run in an experiment, the following information are stored:
