@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import time
+import pickle
 
 # Parse command line arguments.
 import argparse
@@ -25,16 +26,24 @@ parser.add_argument('-njobs', type=int, default=8)
 
 args = parser.parse_args()
 
+# Create model directory if it doesn't exist.
+if not os.path.exists(args.model_path):
+    os.makedirs(args.model_path)
+
 # Load the dataset.
 from dataset import Dataset
 
 dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=True,
-                        num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v)
+                        num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v, start=0)
 dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=True,
-                        num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v)
+                        num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v, start=1)
 
-dataset_train.train_scaler(remove_mean=True, remove_std=True, scaler_batch_size=args.batch_size)
+# Train and export scaler
+dataset_train.train_scaler(remove_mean=True, remove_std=False, scaler_batch_size=args.batch_size)
 dataset_valid.set_scaler(dataset_train.get_scaler())
+
+scaler_path = os.path.join(args.model_path, 'scaler.p')
+pickle.dump(dataset_train.get_scaler(), open(scaler_path, 'wb'))
 
 print('Train with %d images' % (dataset_train.n_samples))
 print('Valid with %d images' % (dataset_valid.n_samples))
@@ -48,13 +57,8 @@ from generator import Generator
 gen_train = Generator(dataset_train, ids_train, batch_size=args.batch_size, shuffle=True, buffer_size=args.buffer_size, verbose=args.v)
 gen_valid = Generator(dataset_valid, ids_valid, batch_size=args.batch_size, shuffle=True, buffer_size=args.buffer_size, verbose=args.v)
 
-# Create model directory if it doesn't exist.
-if not os.path.exists(args.model_path):
-    os.makedirs(args.model_path)
-
 # Define tf model.
 import tensorflow as tf
-
 tf.reset_default_graph()
 
 # Set tensorflow to only log errors

@@ -31,9 +31,9 @@ def init_model(input_shape):
     conv_block_2 = add_conv_pool_layer(conv_block_1, 'conv_block_2', filters=32)
     conv_block_3 = add_conv_pool_layer(conv_block_2, 'conv_block_3', filters=32)
     conv_block_4 = add_conv_pool_layer(conv_block_3, 'conv_block_4', filters=64)
-    conv_block_5 = add_conv_pool_layer(conv_block_4, 'conv_block_6', filters=128)
-    conv_block_6 = add_conv_pool_layer(conv_block_5, 'conv_block_7', filters=128)
-    conv_block_7 = add_conv_pool_layer(conv_block_6, 'conv_block_8', filters=128)
+    conv_block_5 = add_conv_pool_layer(conv_block_4, 'conv_block_5', filters=128)
+    conv_block_6 = add_conv_pool_layer(conv_block_5, 'conv_block_6', filters=128)
+    conv_block_7 = add_conv_pool_layer(conv_block_6, 'conv_block_7', filters=128)
 
     # Flatten
     flatten = tf.keras.layers.Flatten()(conv_block_7)

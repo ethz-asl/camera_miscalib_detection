@@ -16,7 +16,7 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='',  num_of_samples=-1,
-                 internal_shuffle=False, n_jobs=1, verbose=0):
+                 internal_shuffle=False, n_jobs=1, verbose=0, start=0):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -50,6 +50,9 @@ class Dataset(object):
         # load the images from every folder
         data = pd.DataFrame(columns=['image_name', 'cal_group'])
         for folder_idx, folder in folders.iterrows():
+            if folder_idx % 2 == start:
+                continue
+
             image_names = glob.glob(os.path.join(dir_path, folder['path_to_dir'])+'/*')
             n = len(image_names)
             new_df = pd.DataFrame({'image_name': image_names, 'cal_group': [folder['cal_group']]*n})
