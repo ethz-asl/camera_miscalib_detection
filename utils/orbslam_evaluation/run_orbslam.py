@@ -290,8 +290,13 @@ def main(args):
         print("Distortion Coefficients: ", cam_run.get_D())
 
         # Calculate the APPD value for these parameters
-        appd, diff_map = cam_run.appd(reference=cam_reference, width=width, height=height,
-                                      return_diff_map=True, normalized=True)
+        while True:
+            try:
+                appd, diff_map = cam_run.appd(reference=cam_reference, width=width, height=height,
+                                              return_diff_map=True, normalized=True)
+                break
+            except RuntimeError as e:
+                continue
 
         # (Mis)rectify the image
         misrect_image = cam_run.rectify(seq_first_image, result_width=width, result_height=height, mode='preserving')
