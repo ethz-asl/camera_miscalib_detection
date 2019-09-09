@@ -248,7 +248,7 @@ def main(args):
 
     # Create a Sampler to sample parameters from it
     if experiment_type == 'random_perturbations':
-        sampler = cm.UniformAPPDSampler(ranges=sampling_ranges, cal_height=height, cal_width=width, width=width, height=height)
+        sampler = cm.UniformAPPDSampler(ranges=sampling_ranges, cal_height=height, cal_width=width, reference=cam_reference, width=width, height=height)
     else:
         sampler = RangeSampler(ranges=sampling_ranges, cal_height=height, cal_width=width, num_of_runs=num_of_runs)
 
