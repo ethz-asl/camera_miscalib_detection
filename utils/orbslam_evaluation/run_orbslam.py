@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import os
-import yaml
+import ruamel
+from ruamel import yaml
 import subprocess
 import numpy as np
 import cv2
@@ -247,7 +248,7 @@ def main(args):
 
     # Create a Sampler to sample parameters from it
     if experiment_type == 'random_perturbations':
-        sampler = cm.ParameterSampler(ranges=sampling_ranges, cal_height=height, cal_width=width)
+        sampler = cm.UniformAPPDSampler(ranges=sampling_ranges, cal_height=height, cal_width=width, width=width, height=height)
     else:
         sampler = RangeSampler(ranges=sampling_ranges, cal_height=height, cal_width=width, num_of_runs=num_of_runs)
 
@@ -289,6 +290,8 @@ def main(args):
         print("Intrinsic Matrix: ", cam_run.get_K(height))
         print("Distortion Coefficients: ", cam_run.get_D())
 
+        K = cam_run.get_K(height)
+        D = cam_run.get_D()
         # Calculate the APPD value for these parameters
         while True:
             try:
@@ -313,7 +316,7 @@ def main(args):
         orbslam_settings = modify_orbslam_settings(orbslam_settings, K, D)
         with open(output_config_file, 'w') as outfile:
             outfile.write('%YAML:1.0\n')
-            yaml.dump(orbslam_settings, outfile)
+            yaml.dump(orbslam_settings, outfile, Dumper=ruamel.yaml.RoundTripDumper)
 
         # run OrbSLAM
         if not os.path.exists(traj_output_file):
