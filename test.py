@@ -28,7 +28,8 @@ dataset_test = Dataset(args.index, selector=args.test_selector, internal_shuffle
                        num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v)
 
 # Load previous scaler
-scaler = pickle.load(open('scaler.p', 'rb'))
+scaler_path = os.path.join(args.model_path, 'scaler.p')
+scaler = pickle.load(open(scaler_path, 'rb'))
 dataset_test.set_scaler(scaler)
 
 print('Test with %d images' % (dataset_test.n_samples))
