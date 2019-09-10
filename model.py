@@ -83,5 +83,5 @@ def init_model(input_shape):
         tf.summary.scalar('data', time_data, collections=['summary_time'])
         tf.summary.scalar('train', time_train, collections=['summary_time'])
 
-    #with tf.name_scope('Images'):
-    #    tf.summary.image('input_images', input_image, max_outputs=3, collections=['summary'])
+#    with tf.name_scope('Images'):
+#        tf.summary.image('input_images', input_image, max_outputs=3, collections=['summary'])
