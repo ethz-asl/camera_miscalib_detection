@@ -34,10 +34,10 @@ args = parser.parse_args()
 from dataset import Dataset
 
 print('Dataset augmentation: ', args.augment)
-dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=True,
+dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=False,
                         num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v,
                         augmentation=args.augment)
-dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=True,
+dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=False,
                         num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v,
                         augmentation=args.augment)
 

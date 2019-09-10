@@ -1,0 +1,2 @@
+python3 train.py /media/scratch/camera-miscalib-data/KITTI/index.csv 2011_09_26+image_02 2011_09_26+image_02 -batch_size 32 -epochs 10 -model_path models/densenet-2-sametv -v 1 -njobs 20 -model_name model-densenet-2 -log_name densenet-2-sametv 
+python3 train.py /media/scratch/camera-miscalib-data/KITTI/index.csv 2011_09_26+image_02 2011_09_26+image_02 -batch_size 32 -epochs 10 -model_path models/densenet-4-sametv -v 1 -njobs 20 -model_name model-densenet-4 -log_name densenet-4-sametv

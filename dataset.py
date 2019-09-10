@@ -56,6 +56,8 @@ class Dataset(object):
             new_df = pd.DataFrame({'image_name': image_names, 'cal_group': [folder['cal_group']]*n})
             data = pd.concat([data, new_df], sort=False)
 
+        #data = data[:64]
+
         if self.verbose > 0:
             print("%d images found in %d folders grouped in %d groups from index file %s, when applying selector '%s'." %
                   (data.shape[0], folders.shape[0], len(folders['cal_group'].unique()), index_csv, selector))
@@ -175,6 +177,7 @@ class Dataset(object):
 
         # Pass batch thorough scaler to remove mean and/or std.
         if self.use_scaler:
+            #image_outputs /= 255
             shape = image_outputs.shape
             image_outputs = np.reshape(image_outputs, (image_outputs.shape[0], -1))
             image_outputs = self.scaler.transform(image_outputs)

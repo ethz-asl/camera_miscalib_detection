@@ -64,7 +64,9 @@ def init_model(input_shape):
     #optimizer = tf.train.MomentumOptimizer(1e-4, 0.1)
     #optimizer = tf.train.GradientDescentOptimizer(1e-4)
 
-    train_op = optimizer.minimize(loss, name='train_op')
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        train_op = optimizer.minimize(loss, name='train_op')
 
     # Statistics.
     error = tf.reduce_mean(tf.abs(y_pred - y_true), name='error_mae')
