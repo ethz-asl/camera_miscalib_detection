@@ -1,0 +1,34 @@
+nuScenes has much more data than KITTI
+We are using a subsampled version (40-80 images per scene)
+There are 1100 scenes, done on 3 cars: 2 in Boston(car_b1,car_b2) and one in Singapore(car_s1), each has 1 set of calibration parameters PER CAMERA. Camera car_b2 has only 15 sequences so has not been labeled train,test, or valid. The rest have.
+
+Each car has 6 cameras:
+
+CAM_FRONT
+CAM_FRONT_RIGHT
+CAM_BACK_RIGHT
+CAM_BACK
+CAM_BACK_LEFT
+CAM_FRONT_LEFT
+
+IMPORTANT:CAM_BACK should not be used as it contains part of the car!
+
+We have train, valid, and test tags for both car_b1 and car_s1. Only the scenes recorded during the day are used. Number of sequences in each split:
+
+for car_b1:
+Train: 300
+Valid: 100
+Test: 52
+
+for car_s1:
+Train: 200
+Valid: 50
+Test: 34
+
+Example tags for training:
+CAM_FRONT+car_b1+train
+CAM_FRONT+car_b1+valid
+CAM_FRONT+car_b1+test
+CAM_FRONT+car_s1+train
+CAM_FRONT+car_s1+valid
+CAM_FRONT+car_s1+test
