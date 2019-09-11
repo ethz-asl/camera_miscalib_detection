@@ -26,7 +26,7 @@ class Dataset(object):
         self.use_scaler = False
         self.n_jobs = n_jobs
         self.verbose = verbose
-        self.resolution_reduction_factor = 2
+        self.resolution_reduction_factor = 1
         self.label_scale_factor = 100
         self.ranges = ranges
         self.same_miscal = same_miscal
@@ -146,9 +146,9 @@ class Dataset(object):
 
         miscals = []
         self._lock_appd.acquire()
-        
+
         # if self.same_miscal is set to true, cache the miscalibration and reuse it when
-        # sample from the same group is used        
+        # sample from the same group is used
         miscal_cache = dict()
         appd_cache = dict()
         for cal_info in cal_infos:
@@ -162,7 +162,7 @@ class Dataset(object):
                 miscal = miscal_cache[cal_group]
 
             miscals.append(miscal)
-            appd = miscal.appd(reference=self.samplers[cal_group].reference,
+            appd = miscal.appd(reference=self.references[cal_group],
                                width=target_width, height=target_height, normalized=True)
 
             label = appd * self.label_scale_factor
@@ -211,6 +211,7 @@ class Dataset(object):
         """Initialize a separate sampler for each group of calibrations"""
 
         self.samplers = dict()
+        self.references = dict()
 
         n_jobs_per_group = max(1, int(self.n_jobs/len(self.cal_groups)))
 
@@ -262,7 +263,7 @@ class Dataset(object):
 
             # Initialize the sampler.
             # Use UniformAPPD sampler unless we have a fixed appd value, then ParameterSampler suffices
-            if self.ranges != 'zeroappd': 
+            if self.ranges != 'zeroappd':
                 sampler = cm.UniformAPPDSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0],
                                                 reference=reference, temperature=5, appd_range_dicovery_samples=1000,
                                                 appd_range_bins=20, init_jobs=self.n_jobs,
@@ -270,10 +271,10 @@ class Dataset(object):
                                                 min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
             else:
                 sampler = cm.ParameterSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0])
-            
+
             sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
-
+            self.references[cal_group] = reference
 
     def stop(self):
         """This should be ran when we want to stop generating data samples and before exiting the script.

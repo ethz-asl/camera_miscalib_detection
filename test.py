@@ -25,8 +25,9 @@ args = parser.parse_args()
 # Load the dataset.
 from dataset import Dataset
 
-dataset_test = Dataset(args.index, selector=args.test_selector, internal_shuffle=True,
-                       num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v, start=-1)
+dataset_test = Dataset(args.index, selector=args.test_selector, internal_shuffle=False,
+                       num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v,
+                       start=-1, ranges='kitti', same_miscal=True)
 
 # Load previous scaler
 scaler_path = os.path.join(args.model_path, 'scaler.p')
@@ -40,7 +41,7 @@ ids_test = np.arange(dataset_test.n_samples)
 # Create batch generators for the test sets.
 from generator import Generator
 
-gen_test = Generator(dataset_test, ids_test, batch_size=args.batch_size, shuffle=True,
+gen_test = Generator(dataset_test, ids_test, batch_size=args.batch_size, shuffle=False,
                      buffer_size=args.buffer_size, verbose=args.v)
 
 # Define tf model.
@@ -95,6 +96,10 @@ with tf.Session(config=config) as sess:
     for b in range(gen_test.n_batches):
         images_batch, labels_batch = gen_test.next()
 
+        # dirty hack to not crash on last batch, skip
+        if len(labels_batch) <= 1:
+            continue
+
         # Calculate validation loss.
         batch_loss, batch_error, y_pred = sess.run(
             [loss_tf, error_tf, y_pred_tf],
@@ -121,6 +126,7 @@ with tf.Session(config=config) as sess:
         sys.stdout.write(console_output)
         sys.stdout.flush()
 
+    fp.close()
     print()
 
 dataset_test.stop()
