@@ -34,9 +34,11 @@ if not os.path.exists(args.model_path):
 from dataset import Dataset
 
 dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=True,
-                        num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v, start=0)
+                        num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v,
+                        ranges='kitti', same_miscal=True)
 dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=True,
-                        num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v, start=1)
+                        num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v,
+                        ranges='kitti', same_miscal=True)
 
 # Train and export scaler
 dataset_train.train_scaler(remove_mean=True, remove_std=False, scaler_batch_size=args.batch_size)

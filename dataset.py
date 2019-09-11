@@ -16,7 +16,7 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='',  num_of_samples=-1,
-                 internal_shuffle=False, n_jobs=1, verbose=0, start=0, ranges='kitti', same_miscal=False):
+                 internal_shuffle=False, n_jobs=1, verbose=0, ranges='kitti', same_miscal=False):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -52,9 +52,6 @@ class Dataset(object):
         # load the images from every folder
         data = pd.DataFrame(columns=['image_name', 'cal_group'])
         for folder_idx, folder in folders.iterrows():
-            if folder_idx % 2 == start:
-                continue
-
             image_names = glob.glob(os.path.join(dir_path, folder['path_to_dir'])+'/*')
             n = len(image_names)
             new_df = pd.DataFrame({'image_name': image_names, 'cal_group': [folder['cal_group']]*n})
@@ -156,17 +153,22 @@ class Dataset(object):
 
             if not self.same_miscal or cal_group not in miscal_cache:
                 # Sample a miscalibration, apply it, and calculate the respective APPD
-                miscal = self.samplers[cal_group].next()
+                if np.random.random() < 0.9:
+                    miscal = self.samplers[cal_group].next()
+                else:
+                    miscal = self.references[cal_group]
+
                 miscal_cache[cal_group] = miscal
             else:
                 miscal = miscal_cache[cal_group]
 
-            miscals.append(miscal)
             appd = miscal.appd(reference=self.references[cal_group],
                                width=target_width, height=target_height, normalized=True)
-
             label = appd * self.label_scale_factor
+
+            miscals.append(miscal)
             label_outputs.append(label)
+
         self._lock_appd.release()
 
         # Form image batch from raw data.
