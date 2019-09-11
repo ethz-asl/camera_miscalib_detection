@@ -16,7 +16,7 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='',  num_of_samples=-1,
-                 internal_shuffle=False, n_jobs=1, verbose=0, start=0):
+                 internal_shuffle=False, n_jobs=1, verbose=0, start=0, ranges='kitti', same_miscal=False):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -28,6 +28,8 @@ class Dataset(object):
         self.verbose = verbose
         self.resolution_reduction_factor = 1
         self.label_scale_factor = 100
+        self.ranges = ranges
+        self.same_miscal = same_miscal
 
         self._lock_appd = threading.Lock()
 
@@ -144,14 +146,24 @@ class Dataset(object):
 
         miscals = []
         self._lock_appd.acquire()
+
+        # if self.same_miscal is set to true, cache the miscalibration and reuse it when
+        # sample from the same group is used
+        miscal_cache = dict()
+        appd_cache = dict()
         for cal_info in cal_infos:
             cal_group, target_width, target_height = cal_info
 
-            # Sample a miscalibration, apply it, and calculate the respective APPD
-            miscal = self.samplers[cal_group].next()
-            appd = miscal.appd(reference=self.samplers[cal_group].reference,
-                               width=target_width, height=target_height, normalized=True)
+            if not self.same_miscal or cal_group not in miscal_cache:
+                # Sample a miscalibration, apply it, and calculate the respective APPD
+                miscal = self.samplers[cal_group].next()
+                miscal_cache[cal_group] = miscal
+            else:
+                miscal = miscal_cache[cal_group]
+
             miscals.append(miscal)
+            appd = miscal.appd(reference=self.references[cal_group],
+                               width=target_width, height=target_height, normalized=True)
 
             label = appd * self.label_scale_factor
             label_outputs.append(label)
@@ -199,6 +211,7 @@ class Dataset(object):
         """Initialize a separate sampler for each group of calibrations"""
 
         self.samplers = dict()
+        self.references = dict()
 
         n_jobs_per_group = max(1, int(self.n_jobs/len(self.cal_groups)))
 
@@ -217,24 +230,51 @@ class Dataset(object):
 
             # Establish the perturbation ranges
             # [!!!] This needs to be fine tuned depending on the dataset used
-            ranges = {'fx': (0.95 * cg['fx'].values[0], 1.20 * cg['fx'].values[0]),
-                      'fy': (0.95 * cg['fy'].values[0], 1.20 * cg['fy'].values[0]),
-                      'cx': (0.95 * cg['cx'].values[0], 1.05 * cg['cx'].values[0]),
-                      'cy': (0.95 * cg['cy'].values[0], 1.05 * cg['cy'].values[0]),
-                      'k1': (0.85 * cg['k1'].values[0], 1.15 * cg['k1'].values[0]),
-                      'k2': (0.85 * cg['k2'].values[0], 1.15 * cg['k2'].values[0]),
-                      'p1': (0.85 * cg['p1'].values[0], 1.15 * cg['p1'].values[0]),
-                      'p2': (0.85 * cg['p2'].values[0], 1.15 * cg['p2'].values[0]),
-                      'k3': (0.85 * cg['k3'].values[0], 1.15 * cg['k3'].values[0])}
+            if self.ranges == 'kitti':
+                ranges = {'fx': (0.95 * cg['fx'].values[0], 1.20 * cg['fx'].values[0]),
+                          'fy': (0.95 * cg['fy'].values[0], 1.20 * cg['fy'].values[0]),
+                          'cx': (0.95 * cg['cx'].values[0], 1.05 * cg['cx'].values[0]),
+                          'cy': (0.95 * cg['cy'].values[0], 1.05 * cg['cy'].values[0]),
+                          'k1': (0.85 * cg['k1'].values[0], 1.15 * cg['k1'].values[0]),
+                          'k2': (0.85 * cg['k2'].values[0], 1.15 * cg['k2'].values[0]),
+                          'p1': (0.85 * cg['p1'].values[0], 1.15 * cg['p1'].values[0]),
+                          'p2': (0.85 * cg['p2'].values[0], 1.15 * cg['p2'].values[0]),
+                          'k3': (0.85 * cg['k3'].values[0], 1.15 * cg['k3'].values[0])}
+            if self.ranges == 'nuscenes':
+                ranges = {'fx': (0.95 * cg['fx'].values[0], 1.20 * cg['fx'].values[0]),
+                          'fy': (0.95 * cg['fy'].values[0], 1.20 * cg['fy'].values[0]),
+                          'cx': (0.95 * cg['cx'].values[0], 1.10 * cg['cx'].values[0]),
+                          'cy': (0.95 * cg['cy'].values[0], 1.10 * cg['cy'].values[0]),
+                          'k1': (-0.2,0.2),
+                          'k2': (-0.1,0.1),
+                          'p1': (-0.001,0.001),
+                          'p2': (-0.0005,0.0005),
+                          'k3': (-0.06,0.06)}
+            if self.ranges == 'zeroappd':
+                ranges = {'fx': (cg['fx'].values[0], cg['fx'].values[0]),
+                          'fy': (cg['fy'].values[0], cg['fy'].values[0]),
+                          'cx': (cg['cx'].values[0], cg['cx'].values[0]),
+                          'cy': (cg['cy'].values[0], cg['cy'].values[0]),
+                          'k1': (cg['k1'].values[0], cg['k1'].values[0]),
+                          'k2': (cg['k2'].values[0], cg['k2'].values[0]),
+                          'p1': (cg['p1'].values[0], cg['p1'].values[0]),
+                          'p2': (cg['p2'].values[0], cg['p2'].values[0]),
+                          'k3': (cg['k3'].values[0], cg['k3'].values[0])}
 
-            # Initialize the sampler
-            sampler = cm.UniformAPPDSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0],
-                                            reference=reference, temperature=5, appd_range_dicovery_samples=1000,
-                                            appd_range_bins=20, init_jobs=self.n_jobs,
-                                            width=output_width, height=output_height,
-                                            min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
+            # Initialize the sampler.
+            # Use UniformAPPD sampler unless we have a fixed appd value, then ParameterSampler suffices
+            if self.ranges != 'zeroappd':
+                sampler = cm.UniformAPPDSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0],
+                                                reference=reference, temperature=5, appd_range_dicovery_samples=1000,
+                                                appd_range_bins=20, init_jobs=self.n_jobs,
+                                                width=output_width, height=output_height,
+                                                min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
+            else:
+                sampler = cm.ParameterSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0])
+
             sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
+            self.references[cal_group] = reference
 
     def stop(self):
         """This should be ran when we want to stop generating data samples and before exiting the script.
