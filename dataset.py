@@ -88,7 +88,7 @@ class Dataset(object):
         self.shape = output[0].shape
 
     def train_scaler(self, remove_mean=False, remove_std=False,
-                     scaler_batch_size=32, scaler_epochs=100):
+                     scaler_batch_size=32, scaler_epochs=256):
         assert(remove_mean or remove_std)
 
         # Mean and std scaling.
