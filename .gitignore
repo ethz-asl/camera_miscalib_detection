@@ -2,6 +2,8 @@ data/
 models/
 tensorboard/
 KITTI/
+backup/
 
 *.pyc
+*.csv
 **/.idea
