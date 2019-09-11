@@ -25,8 +25,9 @@ args = parser.parse_args()
 # Load the dataset.
 from dataset import Dataset
 
-dataset_test = Dataset(args.index, selector=args.test_selector, internal_shuffle=True,
-                       num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v, start=-1)
+dataset_test = Dataset(args.index, selector=args.test_selector, internal_shuffle=False,
+                       num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v,
+                       start=-1, ranges='zeroappd', same_miscal=True)
 
 # Load previous scaler
 scaler_path = os.path.join(args.model_path, 'scaler.p')

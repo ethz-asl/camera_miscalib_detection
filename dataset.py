@@ -249,15 +249,31 @@ class Dataset(object):
                           'p1': (-0.001,0.001),
                           'p2': (-0.0005,0.0005),
                           'k3': (-0.06,0.06)}
+            if self.ranges == 'zeroappd':
+                ranges = {'fx': (cg['fx'].values[0], cg['fx'].values[0]),
+                          'fy': (cg['fy'].values[0], cg['fy'].values[0]),
+                          'cx': (cg['cx'].values[0], cg['cx'].values[0]),
+                          'cy': (cg['cy'].values[0], cg['cy'].values[0]),
+                          'k1': (cg['k1'].values[0], cg['k1'].values[0]),
+                          'k2': (cg['k2'].values[0], cg['k2'].values[0]),
+                          'p1': (cg['p1'].values[0], cg['p1'].values[0]),
+                          'p2': (cg['p2'].values[0], cg['p2'].values[0]),
+                          'k3': (cg['k3'].values[0], cg['k3'].values[0])}
 
-            # Initialize the sampler
-            sampler = cm.UniformAPPDSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0],
-                                            reference=reference, temperature=5, appd_range_dicovery_samples=1000,
-                                            appd_range_bins=20, init_jobs=self.n_jobs,
-                                            width=output_width, height=output_height,
-                                            min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
+            # Initialize the sampler.
+            # Use UniformAPPD sampler unless we have a fixed appd value, then ParameterSampler suffices
+            if self.ranges != 'zeroappd': 
+                sampler = cm.UniformAPPDSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0],
+                                                reference=reference, temperature=5, appd_range_dicovery_samples=1000,
+                                                appd_range_bins=20, init_jobs=self.n_jobs,
+                                                width=output_width, height=output_height,
+                                                min_cropped_size=(int(output_width / 1.5), int(output_height / 1.5)))
+            else:
+                sampler = cm.ParameterSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0])
+            
             sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group)
             self.samplers[cal_group] = sampler
+
 
     def stop(self):
         """This should be ran when we want to stop generating data samples and before exiting the script.
