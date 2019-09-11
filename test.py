@@ -25,7 +25,7 @@ args = parser.parse_args()
 from dataset import Dataset
 
 dataset_test = Dataset(args.index, selector=args.test_selector, internal_shuffle=True,
-                       num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v)
+                       num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v, start=-1)
 
 # Load previous scaler
 scaler_path = os.path.join(args.model_path, 'scaler.p')
@@ -67,6 +67,7 @@ training_tf = graph.get_tensor_by_name('training:0')
 
 loss_tf = graph.get_tensor_by_name('loss_mse:0')
 error_tf = graph.get_tensor_by_name('error_mae:0')
+y_pred_tf = graph.get_tensor_by_name('Squeeze:0')
 
 # Global step for logging.
 global_step = 0
@@ -81,6 +82,9 @@ with tf.Session(config=config) as sess:
     model_file = os.path.join(args.model_path, args.model_name)
     saver.restore(sess, model_file)
 
+    # Open csv to log results
+    fp = open('appd_result.csv', 'w')
+
     # Sequence of train and validation batches.
     test_loss = 0
     test_error = 0
@@ -91,14 +95,18 @@ with tf.Session(config=config) as sess:
         images_batch, labels_batch = gen_test.next()
 
         # Calculate validation loss.
-        batch_loss, batch_error = sess.run(
-            [loss_tf, error_tf],
+        batch_loss, batch_error, y_pred = sess.run(
+            [loss_tf, error_tf, y_pred_tf],
             feed_dict={input_image_tf: images_batch,
                        y_true_tf: labels_batch})
 
         test_loss += batch_loss
         test_error += batch_error
         test_step += 1
+
+        # Log results
+        for label,pred in zip(labels_batch, y_pred):
+            fp.write('%f,%f\n' % (label, pred))
 
         # Print results.
         sys.stdout.write('\b' * console_output_size)

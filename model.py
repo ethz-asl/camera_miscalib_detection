@@ -55,7 +55,7 @@ def init_model(input_shape):
                                    use_bias=False, name="output")(dense2_drop)
 
     # Squeeze predictions for comparison with labels which are a simple 1D vector
-    y_pred = tf.squeeze(y_pred)
+    y_pred = tf.squeeze(y_pred, name='y_pred')
 
     # Loss and optimizer.
     loss = tf.reduce_mean(tf.square(y_pred - y_true), name='loss_mse')
