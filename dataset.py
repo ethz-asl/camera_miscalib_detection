@@ -16,7 +16,7 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='',  num_of_samples=-1,
-                 internal_shuffle=False, n_jobs=1, verbose=0, ranges='kitti', same_miscal=False):
+                 internal_shuffle=False, n_jobs=1, verbose=0, ranges='kitti'):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -29,7 +29,6 @@ class Dataset(object):
         self.resolution_reduction_factor = 1
         self.label_scale_factor = 100
         self.ranges = ranges
-        self.same_miscal = same_miscal
 
         self._lock_appd = threading.Lock()
 
@@ -144,23 +143,15 @@ class Dataset(object):
         miscals = []
         self._lock_appd.acquire()
 
-        # if self.same_miscal is set to true, cache the miscalibration and reuse it when
-        # sample from the same group is used
-        miscal_cache = dict()
-        appd_cache = dict()
         for cal_info in cal_infos:
             cal_group, target_width, target_height = cal_info
 
-            if not self.same_miscal or cal_group not in miscal_cache:
-                # Sample a miscalibration, apply it, and calculate the respective APPD
-                if np.random.random() < 0.9:
-                    miscal = self.samplers[cal_group].next()
-                else:
-                    miscal = self.references[cal_group]
-
-                miscal_cache[cal_group] = miscal
+            # Sample a miscalibration, apply it, and calculate the respective APPD
+            if np.random.random() < 0.99:
+                miscal = self.samplers[cal_group].next()
             else:
-                miscal = miscal_cache[cal_group]
+                miscal = self.references[cal_group]
+
 
             appd = miscal.appd(reference=self.references[cal_group],
                                width=target_width, height=target_height, normalized=True)
@@ -274,7 +265,7 @@ class Dataset(object):
             else:
                 sampler = cm.ParameterSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0])
 
-            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group)
+            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group, cache_size=2000)
             self.samplers[cal_group] = sampler
             self.references[cal_group] = reference
 

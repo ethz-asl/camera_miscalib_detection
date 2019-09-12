@@ -52,7 +52,7 @@ def init_model(input_shape):
     dense2_drop = tf.keras.layers.Dropout(rate=0.0, name='dense2_drop')(dense2, training=training)
 
     y_pred = tf.keras.layers.Dense(units=1, kernel_initializer='glorot_uniform',
-                                   use_bias=False, name="output")(dense2_drop)
+                                   use_bias=True, name="output")(dense2_drop)
 
     # Squeeze predictions for comparison with labels which are a simple 1D vector
     y_pred = tf.squeeze(y_pred, name='y_pred')

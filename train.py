@@ -8,6 +8,13 @@ import pickle
 # Parse command line arguments.
 import argparse
 
+# For running on a computer with ROS installed
+try:
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+except:
+    pass
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('index')
 parser.add_argument('train_selector')
@@ -35,10 +42,10 @@ from dataset import Dataset
 
 dataset_train = Dataset(args.index, selector=args.train_selector, internal_shuffle=True,
                         num_of_samples=args.n_train_samples, n_jobs=args.njobs, verbose=args.v,
-                        ranges='kitti', same_miscal=True)
+                        ranges='kitti')
 dataset_valid = Dataset(args.index, selector=args.valid_selector, internal_shuffle=True,
                         num_of_samples=args.n_valid_samples, n_jobs=args.njobs, verbose=args.v,
-                        ranges='kitti', same_miscal=True)
+                        ranges='kitti')
 
 # Train and export scaler
 dataset_train.train_scaler(remove_mean=True, remove_std=False, scaler_batch_size=args.batch_size)
