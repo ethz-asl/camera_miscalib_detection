@@ -16,7 +16,7 @@ import carnivalmirror as cm
 
 class Dataset(object):
     def __init__(self, index_csv, selector='',  num_of_samples=-1,
-                 internal_shuffle=False, n_jobs=1, verbose=0, ranges='kitti'):
+                 internal_shuffle=False, n_jobs=1, verbose=0, ranges='kitti', cropping=None):
         """
         NOTE:  - For larger datasets only process the paths and load the data later in the get_outputs() function.
                - selector should be formatted like: "image03+2011_09_26,image03+2011_09_28" to use all the folders with
@@ -29,6 +29,7 @@ class Dataset(object):
         self.resolution_reduction_factor = 1
         self.label_scale_factor = 100
         self.ranges = ranges
+        self.cropping = cropping
 
         self._lock_appd = threading.Lock()
 
@@ -171,6 +172,10 @@ class Dataset(object):
                                    result_width=target_width,
                                    result_height=target_height,
                                    mode='preserving')
+            if self.cropping == 'nuscenes_to_kitti':
+                image = self.nuscenes_to_kitty(image)
+            if self.cropping == 'kitti_to_nuscenes':
+                image = self.kitti_to_nuscenes(image)
 
             # Collect batch data.
             image_outputs.append(image)
@@ -280,3 +285,13 @@ class Dataset(object):
                 self.samplers[cal_group].stop()
             except:
                 pass
+
+    def nuscenes_to_kitti(image):
+        image = image[156:156+558][:]
+        image = cv2.resize(image, (1392, 512)), interpolation=cv2.INTER_LANCZOS4)
+        return image
+
+    def kitti_to_nuscenes(image):
+        iamge = image[:][241:241+910]
+        image = cv2.resize(image, (1600, 900)), interpolation=cv2.INTER_LANCZOS4)
+        return image
