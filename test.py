@@ -27,11 +27,11 @@ from dataset import Dataset
 
 dataset_test = Dataset(args.index, selector=args.test_selector, internal_shuffle=False,
                        num_of_samples=args.n_test_samples, n_jobs=args.njobs, verbose=args.v,
-                       start=-1, ranges='kitti', same_miscal=True)
+                       ranges='kitti')
 
 # Load previous scaler
 scaler_path = os.path.join(args.model_path, 'scaler.p')
-scaler = pickle.load(open(scaler_path, 'rb'))
+scaler = pickle.load(open(scaler_path, 'rb'), encoding='latin1' )
 dataset_test.set_scaler(scaler)
 
 print('Test with %d images' % (dataset_test.n_samples))
