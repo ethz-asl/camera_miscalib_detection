@@ -147,15 +147,17 @@ class Dataset(object):
             cal_group, target_width, target_height = cal_info
 
             # Sample a miscalibration, apply it, and calculate the respective APPD
-            if np.random.random() < 0.99:
-                miscal = self.samplers[cal_group].next()
-            else:
-                miscal = self.references[cal_group]
+            label = 100
+            while label > 3:
+                if np.random.random() < 0.99:
+                    miscal = self.samplers[cal_group].next()
+                else:
+                    miscal = self.references[cal_group]
 
 
-            appd = miscal.appd(reference=self.references[cal_group],
-                               width=target_width, height=target_height, normalized=True)
-            label = appd * self.label_scale_factor
+                appd = miscal.appd(reference=self.references[cal_group],
+                                   width=target_width, height=target_height, normalized=True)
+                label = appd * self.label_scale_factor
 
             miscals.append(miscal)
             label_outputs.append(label)
