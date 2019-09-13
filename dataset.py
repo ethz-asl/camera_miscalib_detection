@@ -267,7 +267,7 @@ class Dataset(object):
             else:
                 sampler = cm.ParameterSampler(ranges=ranges, cal_width=cg['width'].values[0], cal_height=cg['height'].values[0])
 
-            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group, cache_size=2000)
+            sampler = cm.ParallelBufferedSampler(sampler=sampler, buffer_size=8, n_jobs=n_jobs_per_group, cache_size=3000)
             self.samplers[cal_group] = sampler
             self.references[cal_group] = reference
 
