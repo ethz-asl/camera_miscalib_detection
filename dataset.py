@@ -173,7 +173,7 @@ class Dataset(object):
                                    result_height=target_height,
                                    mode='preserving')
             if self.cropping == 'nuscenes_to_kitti':
-                image = self.nuscenes_to_kitty(image)
+                image = self.nuscenes_to_kitti(image)
             if self.cropping == 'kitti_to_nuscenes':
                 image = self.kitti_to_nuscenes(image)
 
@@ -286,12 +286,12 @@ class Dataset(object):
             except:
                 pass
 
-    def nuscenes_to_kitti(image):
+    def nuscenes_to_kitti(self, image):
         image = image[156:156+558][:]
-        image = cv2.resize(image, (1392, 512)), interpolation=cv2.INTER_LANCZOS4)
+        image = cv2.resize(image, (1392, 512), interpolation=cv2.INTER_LANCZOS4)
         return image
 
-    def kitti_to_nuscenes(image):
+    def kitti_to_nuscenes(self, image):
         iamge = image[:][241:241+910]
-        image = cv2.resize(image, (1600, 900)), interpolation=cv2.INTER_LANCZOS4)
+        image = cv2.resize(image, (1600, 900), interpolation=cv2.INTER_LANCZOS4)
         return image
