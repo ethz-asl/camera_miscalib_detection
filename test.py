@@ -5,6 +5,12 @@ import sys
 import time
 import pickle
 
+# For running on a computer with ROS installed
+try:
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+except:
+    pass
+
 # Parse command line arguments.
 import argparse
 
@@ -69,7 +75,10 @@ training_tf = graph.get_tensor_by_name('training:0')
 
 loss_tf = graph.get_tensor_by_name('loss_mse:0')
 error_tf = graph.get_tensor_by_name('error_mae:0')
-y_pred_tf = graph.get_tensor_by_name('Squeeze:0')
+try:
+    y_pred_tf = graph.get_tensor_by_name('Squeeze:0')
+except:
+    y_pred_tf = graph.get_tensor_by_name('y_pred:0')
 
 # Global step for logging.
 global_step = 0
